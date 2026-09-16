@@ -88,7 +88,8 @@
       const todayCount = S.eventsOn(U.today()).filter((ev) => (ev.members || []).includes(m.id)).length;
       statusRows.appendChild(el('div', { class: 'row' }, [
         ui.avatar(m.id, 28),
-        el('span', { style: { minWidth: '84px', fontWeight: '550' }, text: m.name }),
+        el('span', { style: { minWidth: '72px', fontWeight: '550' }, text: m.name }),
+        el('span', { class: 'faint', style: { minWidth: '44px' }, text: m.role || '' }),
         el('span', { class: 'dot', style: { background: st.color } }),
         el('span', { class: 'grow muted', text: st.label }),
         el('span', { class: 'faint mono', text: todayCount + '건' }),
@@ -111,6 +112,7 @@
           el('div', { style: { display: 'flex', alignItems: 'center', gap: '9px' } }, [
             ui.avatar(member.id, 26),
             el('span', { style: { fontSize: '14px', fontWeight: '650' }, text: member.name }),
+            member.role ? ui.tag(member.role, 'var(--text-3)') : null,
           ]),
           el('span', { class: 'sub', text: mine.length + '건' }),
         ]),
@@ -196,6 +198,13 @@
         if (next && next !== member.short) { S.updateMember(member.id, { short: next }); ctx.rerender(); }
       });
 
+      const roleInput = el('input', { type: 'text', placeholder: '역할', style: { width: '76px' } });
+      roleInput.value = member.role || '';
+      roleInput.addEventListener('blur', () => {
+        const next = roleInput.value.trim();
+        if (next !== (member.role || '')) { S.updateMember(member.id, { role: next }); ctx.rerender(); }
+      });
+
       const colors = el('div', { style: { display: 'flex', gap: '4px' } });
       A.MEMBER_PALETTE.forEach((color) => {
         colors.appendChild(el('button', {
@@ -215,6 +224,7 @@
         ui.avatar(member.id),
         nameInput,
         shortInput,
+        roleInput,
         el('div', { class: 'grow' }, [colors]),
         member.lead
           ? ui.tag('본인', 'var(--text-3)')

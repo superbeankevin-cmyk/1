@@ -594,6 +594,21 @@ kbd {
 .proj-name { font-size: 14.5px; font-weight: 650; }
 .proj-sub { font-size: 11.5px; color: var(--text-3); }
 
+/* 목표 · 완료 · 잔여 편수 */
+.proj-counts {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px; text-align: center;
+  padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.proj-counts .k { display: block; font-size: 10.5px; color: var(--text-3); font-weight: 600; }
+.proj-counts .v { display: block; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 1px; }
+
+.proj-foot {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums;
+}
+
 .pipeline { display: flex; flex-direction: column; gap: 5px; }
 .pipeline-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .pipeline-row .lbl { color: var(--text-2); min-width: 58px; }

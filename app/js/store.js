@@ -186,6 +186,7 @@
         id: U.uid(),
         name: name.trim(),
         short: (short || name.trim().slice(0, 2)).toUpperCase(),
+        role: '',
         color,
         active: true,
       };
@@ -235,8 +236,13 @@
       const project = Object.assign(
         {
           id: U.uid(),
-          name: '',
-          subtitle: '',
+          name: '',          // 짧게 부르는 이름 (예: 광명시)
+          subtitle: '',      // 과업명 전체
+          budget: 0,         // 사업예산 (원)
+          periodStart: '',   // 과업기간
+          periodEnd: '',
+          targetCount: 0,    // 목표 편수
+          doneOverride: null,// 완료 편수를 직접 적고 싶을 때
           color:
             MEMBER_PALETTE.find((c) => !used.includes(c)) ||
             MEMBER_PALETTE[this.data.projects.length % MEMBER_PALETTE.length],
@@ -265,8 +271,15 @@
       this.save();
     },
 
-    /** 프로젝트 진행 현황 — 상태별 개수와 완료율 */
+    /**
+     * 프로젝트 현황.
+     * - byStatus/total/done: 캘린더에 등록된 일정 기준 (파이프라인)
+     * - target/delivered/remaining: 주간보고서의 목표·완료·잔여 편수
+     *   완료 편수는 '완료' 상태 일정 수로 자동 집계하되,
+     *   직접 적어둔 값(doneOverride)이 있으면 그쪽을 쓴다.
+     */
     projectStats(projectId) {
+      const project = this.project(projectId);
       const events = this.data.events.filter((e) => e.projectId === projectId);
       const byStatus = {};
       for (const st of STATUSES) byStatus[st.id] = 0;
@@ -276,12 +289,23 @@
       }
       const total = events.length;
       const done = byStatus.done;
+
+      const target = project && project.targetCount ? project.targetCount : 0;
+      const delivered =
+        project && project.doneOverride !== null && project.doneOverride !== undefined
+          ? project.doneOverride
+          : done;
+
       return {
         total,
         done,
         byStatus,
-        pct: total ? Math.round((done / total) * 100) : 0,
         events,
+        pct: total ? Math.round((done / total) * 100) : 0,
+        target,
+        delivered,
+        remaining: target ? Math.max(0, target - delivered) : 0,
+        targetPct: target ? Math.round((delivered / target) * 100) : 0,
       };
     },
 
@@ -622,6 +646,13 @@
       if (ev.deadline === undefined) ev.deadline = false;
       if (ev.allDay === undefined) ev.allDay = !ev.start;
     }
+    for (const p of data.projects) {
+      if (!p.id) p.id = U.uid();
+      if (p.budget === undefined) p.budget = 0;
+      if (p.targetCount === undefined) p.targetCount = 0;
+      if (p.doneOverride === undefined) p.doneOverride = null;
+    }
+    for (const m of data.members) if (m.role === undefined) m.role = '';
     for (const list of Object.values(data.checklists)) {
       for (const t of list) if (!t.id) t.id = U.uid();
     }

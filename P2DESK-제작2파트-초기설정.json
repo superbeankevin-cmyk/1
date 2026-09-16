@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "members": [
+    {
+      "id": "sk",
+      "name": "조성경",
+      "short": "SK",
+      "role": "파트장",
+      "color": "#5AA9E6",
+      "active": true,
+      "lead": true
+    },
+    {
+      "id": "jy",
+      "name": "권지연",
+      "short": "JY",
+      "role": "작가",
+      "color": "#A98BDB",
+      "active": true
+    },
+    {
+      "id": "jh",
+      "name": "박정현",
+      "short": "JH",
+      "role": "PD",
+      "color": "#57C68A",
+      "active": true
+    },
+    {
+      "id": "sb",
+      "name": "임승빈",
+      "short": "SB",
+      "role": "PD",
+      "color": "#F2A15E",
+      "active": true
+    }
+  ],
+  "projects": [
+    {
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-12-31",
+      "doneOverride": null,
+      "active": true,
+      "createdAt": "2026-09-16T02:11:07.563Z",
+      "id": "p-nfa",
+      "name": "소방청",
+      "subtitle": "2026년 소방청 소셜미디어 운영 용역(영상)",
+      "budget": 48200000,
+      "targetCount": 26,
+      "color": "#F2A15E"
+    },
+    {
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-12-31",
+      "doneOverride": null,
+      "active": true,
+      "createdAt": "2026-09-16T02:11:07.563Z",
+      "id": "p-icheon",
+      "name": "이천시",
+      "subtitle": "2026년 이천시 유튜브 콘텐츠 채널 영상 제작 용역",
+      "budget": 49500000,
+      "targetCount": 12,
+      "color": "#57C68A"
+    },
+    {
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-12-31",
+      "doneOverride": null,
+      "active": true,
+      "createdAt": "2026-09-16T02:11:07.563Z",
+      "id": "p-sfac",
+      "name": "서울문화재단",
+      "subtitle": "2026년 서울문화재단 온라인 통합홍보 기획 및 운영",
+      "budget": 37449000,
+      "targetCount": 0,
+      "color": "#A98BDB"
+    },
+    {
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-12-31",
+      "doneOverride": null,
+      "active": true,
+      "createdAt": "2026-09-16T02:11:07.563Z",
+      "id": "p-gm",
+      "name": "광명시",
+      "subtitle": "2026년 광명시 유튜브 채널 운영 용역",
+      "budget": 90000000,
+      "targetCount": 60,
+      "color": "#5AA9E6"
+    },
+    {
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-12-31",
+      "doneOverride": null,
+      "active": true,
+      "createdAt": "2026-09-16T02:11:07.563Z",
+      "id": "p-donggu",
+      "name": "동구",
+      "subtitle": "2026년 동구 유튜브 채널 운영 및 관리 용역",
+      "budget": 45000000,
+      "targetCount": 0,
+      "color": "#4DBFA6"
+    }
+  ],
+  "events": [
+    {
+      "id": "mu3gs6ng-ta9zap",
+      "importedUid": "tt-2026w38-01@klkong-part2",
+      "title": "[구성] 광명의 세포들 시즌2 프롤, 1, 2화 JY",
+      "date": "2026-09-14",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z",
+      "projectId": "p-gm"
+    },
+    {
+      "id": "mu3gs6nh-hhuq9d",
+      "importedUid": "tt-2026w38-02@klkong-part2",
+      "title": "[구성] 안양시민에게 물어봤습니다 JY",
+      "date": "2026-09-14",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-uu9r0a",
+      "importedUid": "tt-2026w38-03@klkong-part2",
+      "title": "[1차] 대구시 옻골마을 쇼츠 SK",
+      "date": "2026-09-14",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sk"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-s4j84x",
+      "importedUid": "tt-2026w38-04@klkong-part2",
+      "title": "[촬영] 추석인사 (민주대표) SK BJ",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sk"
+      ],
+      "category": "shoot",
+      "status": "shot",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-livck4",
+      "importedUid": "tt-2026w38-05@klkong-part2",
+      "title": "[1차] 연기감지기 신규 가로형 JH",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jh"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z",
+      "projectId": "p-nfa"
+    },
+    {
+      "id": "mu3gs6nh-lxpxbc",
+      "importedUid": "tt-2026w38-06@klkong-part2",
+      "title": "[1차] 다행이 추석연휴 본편 SK",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sk"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-zsxxoi",
+      "importedUid": "tt-2026w38-07@klkong-part2",
+      "title": "[구성] 메모리얼데이 JY",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-i7ddr4",
+      "importedUid": "tt-2026w38-08@klkong-part2",
+      "title": "[구성] 광명의 세포들 시즌2 1화, 2화 재구성 JY",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z",
+      "projectId": "p-gm"
+    },
+    {
+      "id": "mu3gs6nh-qgms8r",
+      "importedUid": "tt-2026w38-09@klkong-part2",
+      "title": "[촬영] 이태원 특조위 촬영 SB",
+      "date": "2026-09-15",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sb"
+      ],
+      "category": "shoot",
+      "status": "shot",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-7hez0p",
+      "importedUid": "tt-2026w38-10@klkong-part2",
+      "title": "[촬영] 기품합창단 스케치 JY HM",
+      "date": "2026-09-16",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "shoot",
+      "status": "ready",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6nh-ffuxoz",
+      "importedUid": "tt-2026w38-11@klkong-part2",
+      "title": "[1차] 이천 SNI 4화 JH",
+      "date": "2026-09-16",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jh"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z",
+      "projectId": "p-icheon"
+    },
+    {
+      "id": "mu3gs6nh-b2zy1l",
+      "importedUid": "tt-2026w38-12@klkong-part2",
+      "title": "[1차] 경기도청 라이브 하이라이트 쇼츠 편집 SB",
+      "date": "2026-09-16",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sb"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.565Z"
+    },
+    {
+      "id": "mu3gs6ni-y0sja1",
+      "importedUid": "tt-2026w38-13@klkong-part2",
+      "title": "[1차] 대구동구 동구르르 신암동 SK",
+      "date": "2026-09-17",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "sk"
+      ],
+      "category": "edit",
+      "status": "editing",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.566Z",
+      "projectId": "p-donggu"
+    },
+    {
+      "id": "mu3gs6ni-tcmh6n",
+      "importedUid": "tt-2026w38-14@klkong-part2",
+      "title": "[구성] 김포시 쇼츠 3개 JY",
+      "date": "2026-09-17",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.566Z"
+    },
+    {
+      "id": "mu3gs6ni-gezgbr",
+      "importedUid": "tt-2026w38-15@klkong-part2",
+      "title": "[구성] 인플루언서 예고 쇼츠 JY",
+      "date": "2026-09-17",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jy"
+      ],
+      "category": "plan",
+      "status": "plan",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.566Z"
+    },
+    {
+      "id": "mu3gs6ni-0olphl",
+      "importedUid": "tt-2026w38-16@klkong-part2",
+      "title": "[촬영] 이천스팟 복숭아축제 1화 JH, SB, HM",
+      "date": "2026-09-18",
+      "endDate": "",
+      "allDay": true,
+      "start": "",
+      "end": "",
+      "members": [
+        "jh",
+        "sb"
+      ],
+      "category": "shoot",
+      "status": "ready",
+      "note": "",
+      "place": "",
+      "done": false,
+      "repeat": "none",
+      "repeatUntil": "",
+      "createdAt": "2026-09-16T02:11:07.566Z",
+      "projectId": "p-icheon"
+    }
+  ],
+  "checklists": {
+    "2026-09-16": []
+  },
+  "routines": [],
+  "notes": {},
+  "settings": {
+    "userName": "성경",
+    "dayStartHour": 8,
+    "dayEndHour": 21,
+    "weekStart": 1,
+    "carryOver": true,
+    "defaultView": "today",
+    "hiddenMembers": [],
+    "lastCarryRun": "",
+    "lastBackup": ""
+  }
+}

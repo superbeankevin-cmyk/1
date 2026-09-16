@@ -60,8 +60,22 @@
 
   /* ------------------------------------------------------------------ */
 
+  function won(amount) {
+    return amount ? Number(amount).toLocaleString('ko-KR') + '원' : '';
+  }
+
+  function periodLabel(project) {
+    if (!project.periodStart) return '';
+    const dot = (key) => key.replace(/-/g, '.');
+    if (!project.periodEnd) return dot(project.periodStart) + ' ~';
+    // 같은 해면 뒤쪽 연도는 생략한다
+    const sameYear = project.periodStart.slice(0, 4) === project.periodEnd.slice(0, 4);
+    return dot(project.periodStart) + ' ~ ' + (sameYear ? dot(project.periodEnd).slice(5) : dot(project.periodEnd));
+  }
+
   function projectCard(project, ctx) {
     const stats = S.projectStats(project.id);
+    const hasTarget = stats.target > 0;
 
     /* 상태별 비중을 한 줄 막대로 */
     const stack = el('div', { class: 'stack-bar' });
@@ -87,6 +101,24 @@
       ]));
     });
 
+    /* 주간보고서의 목표 · 완료 · 잔여 편수 */
+    const counts = el('div', { class: 'proj-counts' }, [
+      el('div', {}, [
+        el('span', { class: 'k', text: '목표' }),
+        el('span', { class: 'v', text: stats.target + '편' }),
+      ]),
+      el('div', {}, [
+        el('span', { class: 'k', text: '완료' }),
+        el('span', { class: 'v', style: { color: 'var(--accent)' }, text: stats.delivered + '편' }),
+      ]),
+      el('div', {}, [
+        el('span', { class: 'k', text: '잔여' }),
+        el('span', { class: 'v', text: stats.remaining + '편' }),
+      ]),
+    ]);
+
+    const daysLeft = project.periodEnd ? U.diffDays(U.today(), project.periodEnd) : null;
+
     return el('div', {
       class: 'card proj-card',
       onClick: () => projectDetail(project, ctx),
@@ -101,16 +133,52 @@
           el('div', { class: 'proj-name', text: project.name }),
           el('div', { class: 'proj-sub', text: project.subtitle || '' }),
         ]),
-        el('div', { style: { textAlign: 'right' } }, [
-          el('div', { style: { fontSize: '15px', fontWeight: '700' }, class: 'mono',
-            text: stats.done + ' / ' + stats.total }),
-          el('div', { class: 'faint', text: '완료' }),
-        ]),
+        hasTarget
+          ? el('div', { style: { textAlign: 'right', flex: 'none' } }, [
+              el('div', { class: 'mono', style: { fontSize: '16px', fontWeight: '700' },
+                text: stats.delivered + ' / ' + stats.target }),
+              el('div', { class: 'faint', text: stats.targetPct + '%' }),
+            ])
+          : el('div', { style: { textAlign: 'right', flex: 'none' } }, [
+              el('div', { class: 'mono', style: { fontSize: '16px', fontWeight: '700' }, text: String(stats.total) }),
+              el('div', { class: 'faint', text: '일정' }),
+            ]),
       ]),
-      stats.total ? stack : el('div', { class: 'bar' }),
+
+      hasTarget
+        ? el('div', { class: 'bar', style: { marginBottom: '10px' } }, [
+            el('span', { style: { width: Math.min(100, stats.targetPct) + '%', background: project.color } }),
+          ])
+        : null,
+      hasTarget ? counts : null,
+
+      // 위의 막대는 '목표 대비 진행', 아래 막대는 '등록된 일정의 단계 분포' — 헷갈리지 않게 표시해 둔다
       stats.total
-        ? el('div', { style: { marginTop: '11px' } }, [pipeline])
-        : el('div', { class: 'empty', style: { padding: '14px' }, text: '아직 등록된 일정이 없습니다.' }),
+        ? el('div', { style: { marginTop: '11px' } }, [
+            el('div', {
+              style: { display: 'flex', justifyContent: 'space-between', marginBottom: '5px' },
+            }, [
+              el('span', { class: 'faint', text: '등록된 일정' }),
+              el('span', { class: 'faint mono', text: stats.total + '건' }),
+            ]),
+            stack,
+            el('div', { style: { height: '9px' } }),
+            pipeline,
+          ])
+        : null,
+      !stats.total && !hasTarget
+        ? el('div', { class: 'empty', style: { padding: '14px' }, text: '아직 등록된 일정이 없습니다.' })
+        : null,
+
+      (project.budget || project.periodStart)
+        ? el('div', { class: 'proj-foot' }, [
+            project.budget ? el('span', { text: won(project.budget) }) : null,
+            project.periodStart ? el('span', { text: periodLabel(project) }) : null,
+            daysLeft !== null && daysLeft >= 0
+              ? el('span', { style: { marginLeft: 'auto' }, text: 'D-' + daysLeft })
+              : null,
+          ])
+        : null,
     ]);
   }
 
@@ -226,11 +294,42 @@
       colorRow.appendChild(swatch);
     });
 
+    const budgetInput = el('input', { type: 'text', placeholder: '예) 48200000' });
+    const startInput = el('input', { type: 'date' });
+    const endInput = el('input', { type: 'date' });
+    const targetInput = el('input', { type: 'text', placeholder: '예) 26' });
+    const doneInput = el('input', { type: 'text', placeholder: '비우면 일정에서 자동 집계' });
+    if (existing) {
+      budgetInput.value = existing.budget ? String(existing.budget) : '';
+      startInput.value = existing.periodStart || '';
+      endInput.value = existing.periodEnd || '';
+      targetInput.value = existing.targetCount ? String(existing.targetCount) : '';
+      doneInput.value =
+        existing.doneOverride === null || existing.doneOverride === undefined
+          ? ''
+          : String(existing.doneOverride);
+    }
+
     ui.modal({
       title: isNew ? '새 프로젝트' : '프로젝트 편집',
+      wide: true,
       body: el('div', { style: { display: 'flex', flexDirection: 'column', gap: '13px' } }, [
         nameInput,
-        el('div', { class: 'field' }, [el('label', { text: '설명' }), subInput]),
+        el('div', { class: 'field' }, [
+          el('label', { text: '과업명' }), subInput,
+        ]),
+        el('div', { class: 'field-row' }, [
+          el('div', { class: 'field' }, [el('label', { text: '사업예산 (원)' }), budgetInput]),
+          el('div', { class: 'field' }, [el('label', { text: '목표 편수' }), targetInput]),
+        ]),
+        el('div', { class: 'field-row' }, [
+          el('div', { class: 'field' }, [el('label', { text: '과업 시작' }), startInput]),
+          el('div', { class: 'field' }, [el('label', { text: '과업 종료' }), endInput]),
+        ]),
+        el('div', { class: 'field' }, [
+          el('label', { text: '완료 편수 (직접 입력)' }), doneInput,
+          el('span', { class: 'faint', text: '비워두면 상태가 “완료”인 일정 수로 자동 집계합니다.' }),
+        ]),
         el('div', { class: 'field' }, [el('label', { text: '색' }), colorRow]),
       ]),
       footer(foot, close) {
@@ -257,8 +356,22 @@
           onClick: () => {
             const name = nameInput.value.trim();
             if (!name) { nameInput.focus(); ui.toast('이름을 입력해 주세요.', { type: 'error' }); return; }
-            if (isNew) S.addProject({ name, subtitle: subInput.value.trim(), color });
-            else S.updateProject(existing.id, { name, subtitle: subInput.value.trim(), color });
+            const num = (input) => {
+              const raw = input.value.replace(/[^0-9]/g, '');
+              return raw === '' ? null : Number(raw);
+            };
+            const values = {
+              name,
+              subtitle: subInput.value.trim(),
+              color,
+              budget: num(budgetInput) || 0,
+              targetCount: num(targetInput) || 0,
+              doneOverride: num(doneInput),
+              periodStart: startInput.value || '',
+              periodEnd: endInput.value || '',
+            };
+            if (isNew) S.addProject(values);
+            else S.updateProject(existing.id, values);
             close();
             ctx.rerender();
           },
