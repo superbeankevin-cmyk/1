@@ -41,12 +41,12 @@
   function defaultData() {
     return {
       version: SCHEMA_VERSION,
+      // 주간보고서의 제작2파트 구성 그대로
       members: [
-        { id: 'me', name: '개인 일정', short: 'ME', color: '#8E8E93', active: true, lead: true },
-        { id: 'sk', name: '조성경', short: 'SK', color: '#5AA9E6', active: true },
-        { id: 'jh', name: '박정현', short: 'JH', color: '#57C68A', active: true },
-        { id: 'sb', name: '임승빈', short: 'SB', color: '#F2A15E', active: true },
-        { id: 'jy', name: '권지연', short: 'JY', color: '#A98BDB', active: true },
+        { id: 'sk', name: '조성경', short: 'SK', role: '파트장', color: '#5AA9E6', active: true, lead: true },
+        { id: 'jy', name: '권지연', short: 'JY', role: '작가', color: '#A98BDB', active: true },
+        { id: 'jh', name: '박정현', short: 'JH', role: 'PD', color: '#57C68A', active: true },
+        { id: 'sb', name: '임승빈', short: 'SB', role: 'PD', color: '#F2A15E', active: true },
       ],
       // 프로젝트는 비워 둔다. 실제 쓰는 이름만 직접 넣는 편이 낫다.
       projects: [],
@@ -57,7 +57,7 @@
       noteTimes: {},   // 메모가 언제 바뀌었는지 (기기 간 합칠 때 필요)
       deleted: {},     // 지운 항목의 id → 지운 시각. 없으면 합칠 때 되살아난다
       settings: {
-        userName: '은서',      // 인사말에 쓰는 이름
+        userName: '성경',      // 인사말에 쓰는 이름 (설정에서 바꿀 수 있다)
         dayStartHour: 8,       // 주간 시간표에 그릴 시간 범위
         dayEndHour: 21,
         weekStart: 0,          // 일요일 시작 (설정에서 월요일로 바꿀 수 있다)
