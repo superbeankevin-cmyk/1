@@ -48,12 +48,8 @@
         { id: 'sb', name: '임승빈', short: 'SB', color: '#F2A15E', active: true },
         { id: 'jy', name: '권지연', short: 'JY', color: '#A98BDB', active: true },
       ],
-      projects: [
-        { id: 'p-palgong', name: '팔공TV', subtitle: '청년 인터뷰 시리즈', color: '#5AA9E6', active: true },
-        { id: 'p-safe', name: '안전한TV', subtitle: '교통안전 캠페인', color: '#57C68A', active: true },
-        { id: 'p-wis', name: 'WILL IT SELL', subtitle: '브랜드 콘텐츠', color: '#F2A15E', active: true },
-        { id: 'p-own', name: '클콩 자체콘텐츠', subtitle: '오리지널 시리즈', color: '#A98BDB', active: true },
-      ],
+      // 프로젝트는 비워 둔다. 실제 쓰는 이름만 직접 넣는 편이 낫다.
+      projects: [],
       events: [],
       checklists: {},
       routines: [],

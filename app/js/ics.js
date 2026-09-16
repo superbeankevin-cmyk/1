@@ -150,20 +150,58 @@
     };
   }
 
-  const CATEGORY_HINTS = [
-    [/촬영|shoot|스튜디오|현장/i, 'shoot'],
-    [/편집|edit|컷|색보정|자막/i, 'edit'],
-    [/기획|구성|콘티|시나리오|대본/i, 'plan'],
-    [/시사|피드백|검수|리뷰|review/i, 'review'],
-    [/납품|업로드|송출|deliver|publish/i, 'deliver'],
-    [/회의|미팅|meeting|킥오프/i, 'meeting'],
-    [/휴가|연차|반차|off/i, 'off'],
+  /**
+   * 타임트리에서 쓰는 대괄호 머리말이 곧 제작 파이프라인이다.
+   * [구성] → 기획, [촬영] → 촬영, [1차] → 편집중, [업로드] → 완료.
+   * 머리말이 있으면 그걸 믿고, 없으면 본문 단어로 추측한다.
+   */
+  const PREFIX_RULES = [
+    { re: /^\[(구성|기획|콘티|대본)\]/, category: 'plan', status: 'plan' },
+    { re: /^\[(촬영|사전세팅|프리뷰)\]/, category: 'shoot', status: 'shoot' },
+    { re: /^\[(라이브|소스중계|중계)\]/, category: 'shoot', status: 'shoot' },
+    { re: /^\[(1차|2차|3차|편집|가편|종편)\]/, category: 'edit', status: 'editing' },
+    { re: /^\[(시사|피드백|검수|리뷰)\]/, category: 'review', status: 'feedback' },
+    { re: /^\[(업로드|납품|송출|발행)\]/, category: 'deliver', status: 'done' },
+    { re: /^\[(회의|미팅|킥오프)\]/, category: 'meeting', status: 'plan' },
+    { re: /^\[(대휴|휴가|연차|반차|예비군|교육)\]/, category: 'off', status: 'plan' },
+    { re: /^\[(지원|섭외|예비군)\]/, category: 'etc', status: 'plan' },
   ];
 
-  function guessCategory(title, categories) {
+  const WORD_HINTS = [
+    [/촬영|스튜디오|현장|로케/, 'shoot', 'shoot'],
+    [/편집|자막|색보정|컷편집/, 'edit', 'editing'],
+    [/기획|구성|콘티|시나리오|대본/, 'plan', 'plan'],
+    [/시사|피드백|검수|리뷰/, 'review', 'feedback'],
+    [/납품|업로드|송출|발행/, 'deliver', 'done'],
+    [/회의|미팅|킥오프/, 'meeting', 'plan'],
+    [/휴가|연차|반차|대휴/, 'off', 'plan'],
+  ];
+
+  /**
+   * 제목에서 종류와 파이프라인 상태를 함께 뽑는다.
+   * 촬영은 지난 날짜면 '촬영완료', 앞으로면 '촬영예정' 으로 나눠 준다.
+   */
+  function classify(title, categories, dateKey) {
     const hay = (title || '') + ' ' + (categories || '');
-    for (const [re, id] of CATEGORY_HINTS) if (re.test(hay)) return id;
-    return 'etc';
+    let category = 'etc';
+    let status = 'plan';
+
+    const prefix = PREFIX_RULES.find((rule) => rule.re.test(title || ''));
+    if (prefix) {
+      category = prefix.category;
+      status = prefix.status;
+    } else {
+      const word = WORD_HINTS.find(([re]) => re.test(hay));
+      if (word) {
+        category = word[1];
+        status = word[2];
+      }
+    }
+
+    if (status === 'shoot') {
+      status = dateKey && dateKey < U.today() ? 'shot' : 'ready';
+    }
+    return { category, status };
   }
 
   /** 제목/설명에서 팀원 이름을 찾아 담당자로 붙여준다 */
@@ -261,6 +299,7 @@
 
   function finalize(raw, members) {
     const haystack = [raw.title, raw.note, raw.rawCategories].filter(Boolean).join(' ');
+    const kind = classify(raw.title, raw.rawCategories, raw.date);
     return {
       id: U.uid(),
       importedUid: raw.uid || '',
@@ -271,7 +310,8 @@
       start: raw.allDay ? '' : raw.start || '',
       end: raw.allDay ? '' : raw.end || '',
       members: guessMembers(haystack, members),
-      category: guessCategory(raw.title, raw.rawCategories),
+      category: kind.category,
+      status: kind.status,
       note: raw.note || '',
       place: raw.place || '',
       done: false,
@@ -281,5 +321,5 @@
     };
   }
 
-  A.ics = { toIcs, parseIcs };
+  A.ics = { toIcs, parseIcs, classify };
 })(window);
