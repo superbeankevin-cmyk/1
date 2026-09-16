@@ -389,7 +389,13 @@ function createWindow() {
 
   if (state.maximized) mainWindow.maximize();
   mainWindow.loadFile(path.join(__dirname, '..', 'app', 'index.html'));
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  // 실행기(.app)를 통해 켜면 창이 다른 창 뒤에 숨는 경우가 있다.
+  // 앱은 떠 있는데 안 보이면 안 켜진 것으로 오해하기 쉬우므로 앞으로 끌어낸다.
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    mainWindow.focus();
+    if (process.platform === 'darwin') app.focus({ steal: true });
+  });
   mainWindow.on('close', saveWindowState);
   mainWindow.on('closed', () => {
     stopWatching();
