@@ -24,7 +24,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "node_modules\electron" (
+if not exist "node_modules\electron\dist" (
     echo   처음 실행이라 준비를 좀 합니다.
     echo   2~5분 정도 걸리고, 다음부터는 바로 켜집니다.
     echo.

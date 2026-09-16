@@ -21,7 +21,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "node_modules\electron" (
+if not exist "node_modules\electron\dist" (
     echo   준비 중입니다. 2~5분 걸립니다.
     echo.
     call npm install

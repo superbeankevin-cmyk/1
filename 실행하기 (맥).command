@@ -19,7 +19,7 @@ if ! command -v node >/dev/null 2>&1; then
     exit 1
 fi
 
-if [ ! -d "node_modules/electron" ]; then
+if [ ! -d "node_modules/electron/dist" ]; then
     echo "  처음 실행이라 준비를 좀 합니다."
     echo "  2~5분 정도 걸리고, 다음부터는 바로 켜집니다."
     echo ""

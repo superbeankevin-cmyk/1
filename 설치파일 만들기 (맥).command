@@ -14,7 +14,7 @@ if ! command -v node >/dev/null 2>&1; then
     exit 1
 fi
 
-if [ ! -d "node_modules/electron" ]; then
+if [ ! -d "node_modules/electron/dist" ]; then
     echo "  준비 중입니다. 2~5분 걸립니다."
     echo ""
     npm install || { echo "  [!] 인터넷 연결을 확인해 주세요."; read -n 1 -s -r -p ""; exit 1; }

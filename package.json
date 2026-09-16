@@ -5,7 +5,7 @@
   "description": "클콩 영상제작본부 제작2파트 파트장용 데스크톱 비서 — 일정·체크리스트·프로젝트 관리",
   "main": "electron/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "node scripts/start.js",
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "dist": "electron-builder --win --mac"
