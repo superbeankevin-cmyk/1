@@ -1,0 +1,5 @@
+# 윈도우 배치 파일은 반드시 CRLF 로 유지 (LF 면 cmd 에서 오동작)
+*.bat text eol=crlf
+
+# 폰트는 바이너리
+*.woff2 binary
