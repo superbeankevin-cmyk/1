@@ -4,6 +4,7 @@
 # 맥 실행 스크립트는 반드시 LF (CRLF 면 bash 가 거부)
 *.command text eol=lf
 *.sh text eol=lf
+**/Contents/MacOS/run text eol=lf
 
 # 폰트는 바이너리
 *.woff2 binary
