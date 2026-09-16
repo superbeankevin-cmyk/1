@@ -54,11 +54,13 @@
       checklists: {},
       routines: [],
       notes: {},
+      noteTimes: {},   // 메모가 언제 바뀌었는지 (기기 간 합칠 때 필요)
+      deleted: {},     // 지운 항목의 id → 지운 시각. 없으면 합칠 때 되살아난다
       settings: {
         userName: '은서',      // 인사말에 쓰는 이름
         dayStartHour: 8,       // 주간 시간표에 그릴 시간 범위
         dayEndHour: 21,
-        weekStart: 1,          // 월요일 시작
+        weekStart: 0,          // 일요일 시작 (설정에서 월요일로 바꿀 수 있다)
         carryOver: true,       // 못 끝낸 일 오늘로 끌어오기
         defaultView: 'today',
         hiddenMembers: [],
@@ -81,6 +83,8 @@
     listeners: new Set(),
     lastSaved: null,
     saveError: null,
+    fileHash: '',     // 마지막으로 읽거나 쓴 파일 내용의 지문
+    dirty: false,     // 아직 파일에 안 들어간 변경이 있는지
 
     /* --- 구독 --- */
     subscribe(fn) {
@@ -99,6 +103,7 @@
         if (res.ok) {
           loaded = res.data;
           this.location = res.path;
+          this.fileHash = res.hash || '';
         } else {
           this.saveError = res.error;
           this.location = res.path;
@@ -114,6 +119,7 @@
 
       this.data = migrate(loaded);
       this.ready = true;
+      this.dirty = false;
       this.runDailyMaintenance();
       this.emit();
       return this.data;
@@ -121,6 +127,8 @@
 
     /* --- 세이브 (입력 중 과도한 쓰기를 막으려고 살짝 지연) --- */
     save() {
+      this.dirty = true;
+      this.data.settings.updatedAt = new Date().toISOString();
       this.emit();
       this._saveDebounced();
     },
@@ -130,29 +138,67 @@
     }, 400),
 
     async flush() {
-      const payload = this.data;
       if (desktop) {
-        const res = await desktop.writeData(payload);
-        this.saveError = res.ok ? null : res.error;
-        if (res.ok) {
-          this.lastSaved = res.savedAt;
-          this.location = res.path;
-          const stamp = U.today();
-          if (payload.settings.lastBackup !== stamp) {
-            payload.settings.lastBackup = stamp;
-            desktop.backupData(payload);
-          }
-        }
+        await this.flushToFile();
       } else {
         try {
-          localStorage.setItem(LS_KEY, JSON.stringify(payload));
+          localStorage.setItem(LS_KEY, JSON.stringify(this.data));
           this.lastSaved = new Date().toISOString();
           this.saveError = null;
+          this.dirty = false;
         } catch (err) {
           this.saveError = '저장 실패: ' + err.message;
         }
       }
       this.emit();
+    },
+
+    /**
+     * 파일에 저장한다.
+     * 저장하려는 사이에 다른 기기가 같은 파일을 고쳤으면, 덮어쓰지 않고
+     * 양쪽을 합친 뒤 다시 쓴다. 그래야 상대 기기의 작업이 날아가지 않는다.
+     */
+    async flushToFile() {
+      let res = await desktop.writeData(this.data, this.fileHash);
+
+      if (res.conflict && res.theirs) {
+        this.data = migrate(A.mergeData(this.data, migrate(res.theirs)));
+        this.fileHash = res.hash || '';
+        res = await desktop.writeData(this.data, '');   // 합쳤으니 이번엔 그대로 쓴다
+        if (res.ok) {
+          this.mergedAt = new Date().toISOString();
+          if (A.onDataMerged) A.onDataMerged();
+        }
+      }
+
+      this.saveError = res.ok ? null : res.error || null;
+      if (!res.ok) return;
+
+      this.lastSaved = res.savedAt;
+      this.location = res.path;
+      this.fileHash = res.hash || '';
+      this.dirty = false;
+
+      const stamp = U.today();
+      if (this.data.settings.lastBackup !== stamp) {
+        this.data.settings.lastBackup = stamp;
+        desktop.backupData(this.data);
+      }
+    },
+
+    /**
+     * 다른 기기가 파일을 고쳤다는 신호를 받았을 때.
+     * 내 쪽에 아직 저장 안 된 변경이 있으면 저장을 먼저 밀어넣는다.
+     * (그 과정에서 위의 충돌 처리가 알아서 합쳐 준다.)
+     */
+    async pullExternalChange() {
+      if (!desktop) return;
+      if (this.dirty) {
+        this._saveDebounced.flush();
+        return;
+      }
+      await this.load();
+      if (A.onDataReloaded) A.onDataReloaded();
     },
 
     /* ---------------------------------------------------------------- */
@@ -189,6 +235,8 @@
         role: '',
         color,
         active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       this.data.members.push(member);
       this.save();
@@ -198,7 +246,7 @@
     updateMember(id, patch) {
       const m = this.member(id);
       if (!m) return;
-      Object.assign(m, patch);
+      Object.assign(m, patch, { updatedAt: new Date().toISOString() });
       this.save();
     },
 
@@ -206,6 +254,7 @@
       const m = this.member(id);
       if (!m || m.lead) return;
       m.active = false;
+      m.updatedAt = new Date().toISOString();
       this.save();
     },
 
@@ -260,7 +309,7 @@
     updateProject(id, patch) {
       const project = this.project(id);
       if (!project) return;
-      Object.assign(project, patch);
+      Object.assign(project, patch, { updatedAt: new Date().toISOString() });
       this.save();
     },
 
@@ -268,6 +317,7 @@
       const project = this.project(id);
       if (!project) return;
       project.active = false;   // 기존 일정의 연결은 살려둔다
+      project.updatedAt = new Date().toISOString();
       this.save();
     },
 
@@ -353,6 +403,7 @@
 
     removeEvent(id) {
       this.data.events = this.data.events.filter((e) => e.id !== id);
+      this.data.deleted[id] = new Date().toISOString();
       this.save();
     },
 
@@ -399,6 +450,7 @@
           starred: false,
           memberId: '',
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
         extra || {}
       );
@@ -411,7 +463,7 @@
     updateTask(dateKey, id, patch) {
       const task = this.tasksFor(dateKey).find((t) => t.id === id);
       if (!task) return null;
-      Object.assign(task, patch);
+      Object.assign(task, patch, { updatedAt: new Date().toISOString() });
       if (patch.done === true) task.doneAt = new Date().toISOString();
       if (patch.done === false) delete task.doneAt;
       this.save();
@@ -420,6 +472,7 @@
 
     removeTask(dateKey, id) {
       this.data.checklists[dateKey] = this.tasksFor(dateKey).filter((t) => t.id !== id);
+      this.data.deleted[id] = new Date().toISOString();
       this.save();
     },
 
@@ -429,6 +482,7 @@
       if (idx < 0) return;
       const [task] = list.splice(idx, 1);
       task.movedFrom = fromKey;
+      task.updatedAt = new Date().toISOString();
       this.tasksFor(toKey).push(task);
       this.save();
     },
@@ -450,6 +504,8 @@
         text: String(text).trim(),
         days: days && days.length ? days.slice() : [1, 2, 3, 4, 5],
         active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       if (!routine.text) return null;
       this.data.routines.push(routine);
@@ -460,12 +516,13 @@
     updateRoutine(id, patch) {
       const r = this.data.routines.find((x) => x.id === id);
       if (!r) return;
-      Object.assign(r, patch);
+      Object.assign(r, patch, { updatedAt: new Date().toISOString() });
       this.save();
     },
 
     removeRoutine(id) {
       this.data.routines = this.data.routines.filter((r) => r.id !== id);
+      this.data.deleted[id] = new Date().toISOString();
       this.save();
     },
 
@@ -535,6 +592,7 @@
     setNote(dateKey, text) {
       if (text && text.trim()) this.data.notes[dateKey] = text;
       else delete this.data.notes[dateKey];
+      this.data.noteTimes[dateKey] = new Date().toISOString();
       this.save();
     },
 
@@ -632,6 +690,8 @@
       routines: Array.isArray(loaded.routines) ? loaded.routines : [],
       projects: Array.isArray(loaded.projects) ? loaded.projects : base.projects,
       notes: loaded.notes && typeof loaded.notes === 'object' ? loaded.notes : {},
+      noteTimes: loaded.noteTimes && typeof loaded.noteTimes === 'object' ? loaded.noteTimes : {},
+      deleted: loaded.deleted && typeof loaded.deleted === 'object' ? loaded.deleted : {},
       settings: Object.assign({}, base.settings, loaded.settings || {}),
     };
 
@@ -687,6 +747,96 @@
     return false;
   }
 
+  const nowIso = () => new Date().toISOString();
+
+  /* ------------------------------------------------------------------ */
+  /* 기기 간 합치기                                                       */
+  /*                                                                     */
+  /* 같은 파일을 두 컴퓨터가 번갈아 쓰기 때문에, 저장하려는 순간 상대가     */
+  /* 이미 고쳐놓았을 수 있다. 그럴 때 통째로 덮어쓰면 상대 작업이 날아간다. */
+  /* 그래서 항목 단위로 합치고, 같은 항목이 양쪽에서 바뀌었을 때만          */
+  /* 나중에 고친 쪽을 남긴다.                                             */
+  /* ------------------------------------------------------------------ */
+
+  function newer(a, b) {
+    return (b.updatedAt || b.createdAt || '') > (a.updatedAt || a.createdAt || '') ? b : a;
+  }
+
+  /** id 가 있는 배열 둘을 합친다. 지워진 항목은 되살리지 않는다. */
+  function mergeById(mine, theirs, deleted) {
+    const out = new Map();
+    for (const rec of [].concat(mine || [], theirs || [])) {
+      if (!rec || !rec.id) continue;
+      const prev = out.get(rec.id);
+      out.set(rec.id, prev ? newer(prev, rec) : rec);
+    }
+    for (const [id, when] of Object.entries(deleted || {})) {
+      const rec = out.get(id);
+      // 지운 뒤에 다시 고친 게 아니라면 지워진 상태를 존중한다
+      if (rec && (rec.updatedAt || rec.createdAt || '') <= when) out.delete(id);
+    }
+    return Array.from(out.values());
+  }
+
+  function mergeChecklists(mine, theirs, deleted) {
+    const dates = new Set([].concat(Object.keys(mine || {}), Object.keys(theirs || {})));
+    const out = {};
+    for (const date of dates) {
+      const merged = mergeById((mine || {})[date], (theirs || {})[date], deleted);
+      if (merged.length) out[date] = merged;
+    }
+    return out;
+  }
+
+  function mergeNotes(mine, theirs) {
+    const dates = new Set([].concat(
+      Object.keys(mine.notes || {}), Object.keys(theirs.notes || {})
+    ));
+    const notes = {};
+    const times = {};
+    for (const date of dates) {
+      const mineAt = (mine.noteTimes || {})[date] || '';
+      const theirsAt = (theirs.noteTimes || {})[date] || '';
+      const takeTheirs = theirsAt > mineAt;
+      const text = takeTheirs ? (theirs.notes || {})[date] : (mine.notes || {})[date];
+      if (text) {
+        notes[date] = text;
+        times[date] = takeTheirs ? theirsAt : mineAt;
+      }
+    }
+    return { notes, times };
+  }
+
+  /** 90일보다 오래된 삭제 기록은 버린다 — 그 정도면 양쪽 다 반영됐다 */
+  function pruneDeleted(deleted) {
+    const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
+    const out = {};
+    for (const [id, when] of Object.entries(deleted || {})) {
+      if (when > cutoff) out[id] = when;
+    }
+    return out;
+  }
+
+  function mergeData(mine, theirs) {
+    const deleted = pruneDeleted(Object.assign({}, theirs.deleted || {}, mine.deleted || {}));
+    const note = mergeNotes(mine, theirs);
+    const mineSettingsAt = (mine.settings || {}).updatedAt || '';
+    const theirsSettingsAt = (theirs.settings || {}).updatedAt || '';
+
+    return {
+      version: SCHEMA_VERSION,
+      members: mergeById(mine.members, theirs.members, deleted),
+      projects: mergeById(mine.projects, theirs.projects, deleted),
+      events: mergeById(mine.events, theirs.events, deleted),
+      routines: mergeById(mine.routines, theirs.routines, deleted),
+      checklists: mergeChecklists(mine.checklists, theirs.checklists, deleted),
+      notes: note.notes,
+      noteTimes: note.times,
+      deleted,
+      settings: theirsSettingsAt > mineSettingsAt ? theirs.settings : mine.settings,
+    };
+  }
+
   function compareEvents(a, b) {
     if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
     const at = U.toMinutes(a.start);
@@ -711,4 +861,5 @@
     return '#8E8E93';
   };
   A.occursOn = occursOn;
+  A.mergeData = mergeData;
 })(window);

@@ -11,8 +11,13 @@ contextBridge.exposeInMainWorld('desktop', {
   isDesktop: true,
 
   readData: () => ipcRenderer.invoke('data:read'),
-  writeData: (payload) => ipcRenderer.invoke('data:write', payload),
+  writeData: (payload, expectedHash) => ipcRenderer.invoke('data:write', payload, expectedHash),
   backupData: (payload) => ipcRenderer.invoke('data:backup', payload),
+
+  // 다른 기기가 파일을 고치면 알려준다
+  onDataChanged: (handler) => ipcRenderer.on('data:changed', (_e, info) => handler(info)),
+  cloudFolders: () => ipcRenderer.invoke('cloud:folders'),
+  useDataDir: (target) => ipcRenderer.invoke('config:useDataDir', target),
 
   getConfig: () => ipcRenderer.invoke('config:get'),
   chooseDataDir: () => ipcRenderer.invoke('config:chooseDataDir'),

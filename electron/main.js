@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
+const crypto = require('crypto');
 
 const CONFIG_NAME = 'assistant-config.json';
 const DATA_NAME = 'part2-data.json';
@@ -51,29 +52,161 @@ function dataPath() {
 /* 저장 / 불러오기                                                      */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 파일 내용의 지문.
+ *
+ * 시각(mtime)으로 판단하면 두 가지가 어긋난다. 클라우드 동기화 앱이 내용은
+ * 그대로 두고 시각만 건드리기도 하고, 반대로 1초 안에 들어온 진짜 변경을
+ * 자기가 쓴 것으로 오인하기도 한다. 내용을 직접 보면 그런 착각이 없다.
+ */
+function hashOf(text) {
+  return crypto.createHash('sha1').update(text).digest('hex');
+}
+
+async function readFileHash(file) {
+  try {
+    return hashOf(await fsp.readFile(file, 'utf8'));
+  } catch (err) {
+    return '';
+  }
+}
+
 async function readData() {
   const file = dataPath();
   try {
     const raw = await fsp.readFile(file, 'utf8');
-    return { ok: true, path: file, data: JSON.parse(raw) };
+    return { ok: true, path: file, data: JSON.parse(raw), hash: hashOf(raw) };
   } catch (err) {
-    if (err.code === 'ENOENT') return { ok: true, path: file, data: null };
-    return { ok: false, path: file, error: err.message };
+    if (err.code === 'ENOENT') return { ok: true, path: file, data: null, hash: '' };
+    return { ok: false, path: file, error: err.message, hash: '' };
   }
 }
 
-// 쓰다가 앱이 죽어도 원본이 깨지지 않도록 임시 파일에 쓰고 교체한다.
-async function writeData(payload) {
+// 우리가 방금 쓴 내용. 감시기가 이걸 보면 남의 변경이 아니라고 판단한다.
+let selfWriteHash = '';
+
+/**
+ * 저장. 임시 파일에 쓰고 교체하므로 도중에 앱이 죽어도 원본이 깨지지 않는다.
+ *
+ * expectedHash 를 넘기면, 그 사이 다른 기기가 파일을 고쳤는지 확인한다.
+ * 고쳤다면 덮어쓰지 않고 상대쪽 내용을 돌려준다 — 합치는 건 화면 쪽 몫.
+ */
+async function writeData(payload, expectedHash) {
   const file = dataPath();
   const tmp = file + '.tmp';
   try {
     await fsp.mkdir(path.dirname(file), { recursive: true });
-    await fsp.writeFile(tmp, JSON.stringify(payload, null, 2), 'utf8');
+
+    if (expectedHash) {
+      const current = await readFileHash(file);
+      if (current && current !== expectedHash) {
+        let theirs = null;
+        try {
+          theirs = JSON.parse(await fsp.readFile(file, 'utf8'));
+        } catch (err) {
+          theirs = null;   // 읽을 수 없으면 그냥 덮어쓰는 편이 낫다
+        }
+        if (theirs) {
+          return { ok: false, conflict: true, path: file, theirs, hash: current };
+        }
+      }
+    }
+
+    const text = JSON.stringify(payload, null, 2);
+    await fsp.writeFile(tmp, text, 'utf8');
     await fsp.rename(tmp, file);
-    return { ok: true, path: file, savedAt: new Date().toISOString() };
+    selfWriteHash = hashOf(text);
+    return { ok: true, path: file, savedAt: new Date().toISOString(), hash: selfWriteHash };
   } catch (err) {
     return { ok: false, path: file, error: err.message };
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* 데이터 파일 감시 — 다른 기기가 고치면 바로 알아챈다                   */
+/* ------------------------------------------------------------------ */
+
+let watcher = null;
+let watchTimer = null;
+
+/**
+ * 파일이 아니라 폴더를 감시한다. 클라우드 동기화 앱들은 파일을 고치는 대신
+ * 새로 받아서 갈아끼우는데, 그러면 파일 감시는 끊겨 버리기 때문이다.
+ */
+function startWatching() {
+  stopWatching();
+  const dir = dataDir();
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    watcher = fs.watch(dir, (eventType, filename) => {
+      if (filename && filename !== DATA_NAME) return;
+      clearTimeout(watchTimer);
+      // 동기화 중에는 여러 번 울리므로 잠잠해질 때까지 기다린다
+      watchTimer = setTimeout(async () => {
+        const hash = await readFileHash(dataPath());
+        if (!hash || hash === selfWriteHash) return;   // 우리가 쓴 그 내용
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('data:changed', { hash });
+        }
+      }, 400);
+    });
+  } catch (err) {
+    // 감시가 안 되는 환경(일부 네트워크 드라이브)이어도 앱은 그대로 동작한다
+    watcher = null;
+  }
+}
+
+function stopWatching() {
+  clearTimeout(watchTimer);
+  if (watcher) {
+    watcher.close();
+    watcher = null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 클라우드 폴더 찾기                                                   */
+/* ------------------------------------------------------------------ */
+
+/** 흔히 쓰는 동기화 폴더 중 실제로 있는 것만 골라 돌려준다 */
+function findCloudFolders() {
+  const home = app.getPath('home');
+  const candidates = [
+    ['iCloud Drive', path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs')],
+    ['Google Drive', path.join(home, 'Google Drive')],
+    ['Google Drive', path.join(home, 'Library', 'CloudStorage')],
+    ['Dropbox', path.join(home, 'Dropbox')],
+    ['OneDrive', path.join(home, 'OneDrive')],
+  ];
+  if (process.platform === 'win32') {
+    candidates.push(['Google Drive', 'G:\\내 드라이브']);
+    candidates.push(['Google Drive', 'G:\\My Drive']);
+  }
+
+  const found = [];
+  const seen = new Set();
+  for (const [label, dir] of candidates) {
+    try {
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
+      // Library/CloudStorage 아래에는 계정별 폴더가 한 겹 더 있다
+      if (dir.endsWith('CloudStorage')) {
+        for (const sub of fs.readdirSync(dir)) {
+          const full = path.join(dir, sub);
+          if (fs.statSync(full).isDirectory() && !seen.has(full)) {
+            seen.add(full);
+            found.push({ label: sub.split('-')[0].trim() || label, path: full });
+          }
+        }
+        continue;
+      }
+      if (seen.has(dir)) continue;
+      seen.add(dir);
+      found.push({ label, path: dir });
+    } catch (err) {
+      /* 접근할 수 없는 후보는 건너뛴다 */
+    }
+  }
+  return found;
 }
 
 // 하루에 한 번, 최근 14개까지 자동 백업
@@ -103,7 +236,8 @@ async function autoBackup(payload) {
 
 function registerIpc() {
   ipcMain.handle('data:read', () => readData());
-  ipcMain.handle('data:write', (_e, payload) => writeData(payload));
+  ipcMain.handle('data:write', (_e, payload, expectedHash) => writeData(payload, expectedHash));
+  ipcMain.handle('cloud:folders', () => findCloudFolders());
   ipcMain.handle('data:backup', (_e, payload) => autoBackup(payload));
 
   ipcMain.handle('config:get', () => ({
@@ -145,7 +279,27 @@ function registerIpc() {
     const cfg = readConfig();
     delete cfg.dataDir;
     writeConfig(cfg);
+    startWatching();
     return { ok: true, dataDir: dataDir(), dataPath: dataPath() };
+  });
+
+  // 설정에서 폴더를 직접 지정할 때 (클라우드 폴더 추천 목록에서 고른 경우)
+  ipcMain.handle('config:useDataDir', async (_e, target) => {
+    try {
+      const current = dataPath();
+      const next = path.join(target, DATA_NAME);
+      await fsp.mkdir(target, { recursive: true });
+      if (fs.existsSync(current) && !fs.existsSync(next)) {
+        await fsp.copyFile(current, next);
+      }
+      const cfg = readConfig();
+      cfg.dataDir = target;
+      writeConfig(cfg);
+      startWatching();
+      return { ok: true, dataDir: target, dataPath: next };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   ipcMain.handle('shell:openDataDir', () => {
@@ -238,8 +392,10 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('close', saveWindowState);
   mainWindow.on('closed', () => {
+    stopWatching();
     mainWindow = null;
   });
+  mainWindow.webContents.once('did-finish-load', startWatching);
 
   // 외부 링크는 기본 브라우저로
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

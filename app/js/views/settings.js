@@ -127,17 +127,51 @@
         style: { margin: '0 0 12px', fontSize: '12.5px', lineHeight: '1.65' },
         text:
           '모든 데이터는 이 JSON 파일 하나에 들어 있습니다. 이 파일을 구글 드라이브 · iCloud Drive · '
-          + 'OneDrive · Dropbox 같은 동기화 폴더에 두면, 맥북에서 같은 폴더를 가리키는 것만으로 '
-          + '일정과 체크리스트가 그대로 이어집니다. (두 기기에서 동시에 편집하는 것만 피하세요.)',
+          + 'OneDrive · Dropbox 같은 동기화 폴더에 두고, 맥과 윈도우 양쪽에서 같은 폴더를 가리키면 '
+          + '일정과 체크리스트가 그대로 이어집니다.',
+      }),
+      el('p', {
+        class: 'muted',
+        style: { margin: '0 0 12px', fontSize: '12.5px', lineHeight: '1.65' },
+        text:
+          '다른 기기에서 파일이 바뀌면 앱이 알아서 다시 읽어옵니다. 양쪽에서 동시에 고친 경우에는 '
+          + '덮어쓰지 않고 항목 단위로 합치며, 같은 항목을 양쪽에서 고쳤을 때만 나중에 고친 쪽이 남습니다.',
       }),
     ];
 
     if (desktop) {
+      // 흔한 동기화 폴더를 찾아 한 번에 고를 수 있게 해 준다
+      const cloudRow = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' } });
+      storageChildren.push(cloudRow);
+      desktop.cloudFolders().then((folders) => {
+        if (!folders || !folders.length) return;
+        cloudRow.appendChild(el('span', {
+          class: 'faint', style: { width: '100%', marginBottom: '2px' },
+          text: '이 컴퓨터에서 찾은 동기화 폴더 — 누르면 그 안에 P2 DESK 폴더를 만들어 씁니다',
+        }));
+        folders.forEach((folder) => {
+          cloudRow.appendChild(el('button', {
+            class: 'btn btn-sm',
+            title: folder.path,
+            text: folder.label,
+            onClick: async () => {
+              const target = folder.path.replace(/[\\/]+$/, '')
+                + (folder.path.includes('\\') ? '\\' : '/') + 'P2 DESK';
+              const res = await desktop.useDataDir(target);
+              if (!res.ok) { ui.toast(res.error || '폴더를 바꾸지 못했습니다.', { type: 'error' }); return; }
+              await S.load();
+              ctx.rerender();
+              ui.toast('저장 폴더를 옮겼습니다. 맥에서도 같은 폴더를 고르세요.', { duration: 6000 });
+            },
+          }));
+        });
+      });
+
       storageChildren.push(
         el('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, [
           el('button', {
             class: 'btn btn-primary',
-            text: '저장 폴더 바꾸기',
+            text: '직접 고르기',
             onClick: async () => {
               const res = await desktop.chooseDataDir();
               if (res.canceled) return;
