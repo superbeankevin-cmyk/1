@@ -21,15 +21,32 @@ fi
 
 if [ ! -d "node_modules/electron/dist" ]; then
     echo "  처음 실행이라 준비를 좀 합니다."
-    echo "  2~5분 정도 걸리고, 다음부터는 바로 켜집니다."
+    echo "  100MB 정도 내려받습니다. 2~5분 걸리고, 다음부터는 바로 켜집니다."
     echo ""
-    if ! npm install; then
+    # --foreground-scripts: 내려받기가 실패하면 조용히 넘어가지 않고 화면에 보인다
+    if ! npm install --foreground-scripts; then
         echo ""
         echo "  [!] 준비 중 문제가 생겼습니다. 인터넷 연결을 확인해 주세요."
         read -n 1 -s -r -p "  아무 키나 누르면 닫힙니다."
         exit 1
     fi
     echo ""
+fi
+
+# 설치가 끝났다는데 알맹이가 없으면, 받다가 끊긴 것이다.
+if [ ! -d "node_modules/electron/dist" ]; then
+    echo ""
+    echo "  [!] 앱 본체를 내려받지 못했습니다."
+    echo ""
+    echo "      아래를 터미널에 붙여넣어 다시 시도해 주세요."
+    echo "      (다른 서버에서 받아옵니다)"
+    echo ""
+    echo "        cd \"$(pwd)\""
+    echo "        rm -rf node_modules/electron"
+    echo "        ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install electron --foreground-scripts"
+    echo ""
+    read -n 1 -s -r -p "  아무 키나 누르면 닫힙니다."
+    exit 1
 fi
 
 echo "  앱을 켜는 중입니다..."

@@ -17,7 +17,7 @@ fi
 if [ ! -d "node_modules/electron/dist" ]; then
     echo "  준비 중입니다. 2~5분 걸립니다."
     echo ""
-    npm install || { echo "  [!] 인터넷 연결을 확인해 주세요."; read -n 1 -s -r -p ""; exit 1; }
+    npm install --foreground-scripts || { echo "  [!] 인터넷 연결을 확인해 주세요."; read -n 1 -s -r -p ""; exit 1; }
     echo ""
 fi
 

@@ -26,9 +26,10 @@ if errorlevel 1 (
 
 if not exist "node_modules\electron\dist" (
     echo   처음 실행이라 준비를 좀 합니다.
-    echo   2~5분 정도 걸리고, 다음부터는 바로 켜집니다.
+    echo   100MB 정도 내려받습니다. 2~5분 걸리고, 다음부터는 바로 켜집니다.
     echo.
-    call npm install
+    rem --foreground-scripts: 내려받기 실패가 조용히 묻히지 않게 한다
+    call npm install --foreground-scripts
     if errorlevel 1 (
         echo.
         echo   [!] 준비 중 문제가 생겼습니다.
@@ -38,6 +39,23 @@ if not exist "node_modules\electron\dist" (
         exit /b 1
     )
     echo.
+)
+
+rem 설치가 끝났다는데 알맹이가 없으면 받다가 끊긴 것이다
+if not exist "node_modules\electron\dist" (
+    echo.
+    echo   [!] 앱 본체를 내려받지 못했습니다.
+    echo.
+    echo       아래를 명령 프롬프트에 붙여넣어 다시 시도해 주세요.
+    echo       ^(다른 서버에서 받아옵니다^)
+    echo.
+    echo         cd /d "%~dp0"
+    echo         rmdir /s /q node_modules\electron
+    echo         set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+    echo         npm install electron --foreground-scripts
+    echo.
+    pause
+    exit /b 1
 )
 
 echo   앱을 켜는 중입니다...

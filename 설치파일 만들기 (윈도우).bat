@@ -24,7 +24,7 @@ if errorlevel 1 (
 if not exist "node_modules\electron\dist" (
     echo   준비 중입니다. 2~5분 걸립니다.
     echo.
-    call npm install
+    call npm install --foreground-scripts
     if errorlevel 1 (
         echo.
         echo   [!] 준비 중 문제가 생겼습니다. 인터넷 연결을 확인해 주세요.

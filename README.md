@@ -58,6 +58,31 @@
 **맥용 설치파일은 맥에서, 윈도우용은 윈도우에서 만들어야 합니다.**
 서로 만들어 줄 수는 없습니다.
 
+### 앱이 안 켜질 때
+
+**Electron 기본 안내 화면(검은 원자 그림)이 뜬다면** — 컴퓨터에 이미 깔린 다른
+프로그램(DaVinci Resolve 등)의 Electron 이 대신 실행된 것입니다. 최신 버전에서는
+자동으로 막아두었으니 ZIP 을 다시 받으세요.
+
+**"Electron failed to install correctly"** 가 뜬다면 — 본체(약 100MB)를 받다가
+끊긴 것입니다. 터미널(맥) 또는 명령 프롬프트(윈도우)에서 다음을 실행하세요.
+
+```bash
+# 맥
+cd ~/Downloads/1-claude-elegant-hypatia-hqbtyn
+rm -rf node_modules/electron
+ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install electron --foreground-scripts
+```
+
+```bat
+rem 윈도우 (압축 푼 폴더에서)
+rmdir /s /q node_modules\electron
+set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+npm install electron --foreground-scripts
+```
+
+GitHub 에서 받는 기본 경로가 막히거나 느릴 때 다른 서버를 쓰는 방법입니다.
+
 ---
 
 ## 화면 다섯 개
