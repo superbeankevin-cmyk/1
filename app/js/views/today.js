@@ -1,4 +1,4 @@
-/* '오늘' 화면 — 아침에 이거 하나만 보면 되도록 */
+/* TODAY — 아침에 이 화면 하나만 보면 되도록 */
 (function (global) {
   'use strict';
 
@@ -7,206 +7,168 @@
   const S = A.store;
   const ui = A.ui;
   const el = U.el;
+  const icon = A.icon;
 
-  function statCard(value, label, color) {
-    return el('div', { class: 'card stat' }, [
-      el('span', { class: 'value', style: color ? { color } : {}, text: String(value) }),
-      el('span', { class: 'label', text: label }),
-    ]);
+  function greetingText() {
+    const hour = new Date().getHours();
+    if (hour < 5) return 'Good night';
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
   }
 
   function render(root, ctx) {
+    ctx.fullHeight();
     const todayKey = U.today();
-    const tomorrowKey = U.addDays(todayKey, 1);
     const weekStart = S.data.settings.weekStart;
-    const weekFrom = U.startOfWeek(todayKey, weekStart);
-    const weekTo = U.addDays(weekFrom, 6);
-
-    ctx.setSubtitle(U.fmtDate(todayKey));
-    ctx.setActions([
-      el('button', {
-        class: 'btn',
-        text: '＋ 할 일',
-        onClick: () => {
-          const box = root.querySelector('#today-tasks .task-add input');
-          if (box) { box.scrollIntoView({ block: 'center' }); box.focus(); }
-        },
-      }),
-      el('button', {
-        class: 'btn btn-primary',
-        text: '＋ 새 일정',
-        onClick: () => ui.eventEditor(null, { date: todayKey, onSaved: ctx.rerender }),
-      }),
-    ]);
+    if (!ctx.state.selected) ctx.state.selected = todayKey;
 
     const todayEvents = S.eventsOn(todayKey);
-    const tomorrowEvents = S.eventsOn(tomorrowKey);
     const progress = ui.taskProgress(todayKey);
-    const carried = S.tasksFor(todayKey).filter((t) => t.carriedFrom && !t.done).length;
-    const weekShoots = S.eventsBetween(weekFrom, weekTo)
-      .filter(({ event }) => event.category === 'shoot').length;
+    const remaining = progress.total - progress.done;
+    const name = S.data.settings.userName;
 
-    /* --- 요약 --- */
+    /* --- 인사말 + 한 줄 요약 --- */
     root.appendChild(
-      el('div', { class: 'grid grid-3', style: { marginBottom: '16px' } }, [
-        statCard(todayEvents.length, '오늘 일정'),
-        statCard(
-          progress.total ? progress.done + ' / ' + progress.total : '0',
-          '체크리스트',
-          progress.total && progress.done === progress.total ? 'var(--success)' : ''
-        ),
-        statCard(weekShoots, '이번 주 촬영'),
-        statCard(carried, '이월된 할 일', carried ? 'var(--warning)' : ''),
+      el('div', { class: 'greeting' }, [
+        el('h1', { text: greetingText() + (name ? ', ' + name + '님' : '') }),
+        el('p', {}, [
+          U.fmtDate(todayKey),
+          '  ·  ',
+          el('span', { class: 'count', text: '일정 ' + todayEvents.length + '개' }),
+          ' · ',
+          el('span', { class: 'count', text: '할 일 ' + remaining + '개 남음' }),
+        ]),
       ])
     );
 
-    /* --- 본문 2단 --- */
-    const cols = el('div', { class: 'grid grid-2' });
-    root.appendChild(cols);
+    /* --- 가운데 주간 시간표 + 오른쪽 TODAY 패널 --- */
+    const split = el('div', { class: 'split', style: { flex: '1', minHeight: '0' } });
+    root.appendChild(split);
 
-    /* 왼쪽: 일정 */
-    const left = el('div', { class: 'grid' });
-    cols.appendChild(left);
+    const days = [];
+    const from = U.startOfWeek(todayKey, weekStart);
+    for (let i = 0; i < 7; i++) days.push(U.addDays(from, i));
+
+    split.appendChild(
+      A.timeGrid({
+        days,
+        getSelected: () => ctx.state.selected,
+        onPickDate: (key) => { ctx.state.selected = key; ctx.go('calendar'); },
+        onChanged: ctx.rerender,
+      })
+    );
+
+    split.appendChild(rail(ctx, todayKey));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 오른쪽 패널 — 이 프로그램의 존재 이유                                */
+  /* ------------------------------------------------------------------ */
+
+  function rail(ctx, todayKey) {
+    const wrap = el('div', { class: 'rail' });
+
+    /* NEXT — 오늘 남은 일정 */
+    const events = S.eventsOn(todayKey);
+    const nowMin = U.toMinutes(U.nowHHMM());
+    const upcoming = events.filter((ev) => ev.allDay || U.toMinutes(ev.end || ev.start) >= nowMin);
 
     const todayCard = el('div', { class: 'card' }, [
       el('div', { class: 'card-head' }, [
-        el('h2', { text: '오늘 일정' }),
-        el('span', { class: 'hint', text: U.fmtDate(todayKey, { year: false }) }),
+        el('h2', { text: 'Today' }),
+        el('button', {
+          class: 'btn btn-sm btn-quiet',
+          onClick: () => A.quickAdd({ date: todayKey, onSaved: ctx.rerender }),
+        }, [icon('plus', 12), '일정']),
       ]),
+      el('div', {
+        style: { fontSize: '15px', fontWeight: '650', marginBottom: '2px' },
+        text: U.fmtDate(todayKey, { year: false }),
+      }),
+      el('div', {
+        class: 'faint',
+        style: { marginBottom: '11px' },
+        text: events.length
+          ? upcoming.length
+            ? upcoming.length + '개가 남아 있어요.'
+            : '오늘 일정은 모두 지나갔어요.'
+          : '오늘은 잡힌 일정이 없어요.',
+      }),
     ]);
-    if (!todayEvents.length) {
-      todayCard.appendChild(el('div', { class: 'empty', text: '오늘 잡힌 일정이 없습니다.' }));
-    } else {
-      const list = el('div', { class: 'event-list' });
-      todayEvents.forEach((ev) => list.appendChild(ui.eventRow(ev, todayKey, ctx.rerender)));
+
+    if (events.length) {
+      const list = el('div', { class: 'ev-list' });
+      events.forEach((ev) => {
+        const row = ui.eventRow(ev, todayKey, ctx.rerender);
+        // 이미 지난 일정은 살짝 흐리게
+        if (!ev.allDay && ev.start && U.toMinutes(ev.end || ev.start) < nowMin) {
+          row.style.opacity = '.5';
+        }
+        list.appendChild(row);
+      });
       todayCard.appendChild(list);
     }
-    left.appendChild(todayCard);
+    wrap.appendChild(todayCard);
 
-    const tomorrowCard = el('div', { class: 'card' }, [
-      el('div', { class: 'card-head' }, [
-        el('h2', { text: '내일 미리보기' }),
-        el('span', { class: 'hint', text: U.fmtDate(tomorrowKey, { year: false }) }),
-      ]),
-    ]);
-    if (!tomorrowEvents.length) {
-      tomorrowCard.appendChild(el('div', { class: 'empty', text: '내일은 비어 있습니다.' }));
-    } else {
-      const list = el('div', { class: 'event-list' });
-      tomorrowEvents.forEach((ev) => list.appendChild(ui.eventRow(ev, tomorrowKey, ctx.rerender)));
-      tomorrowCard.appendChild(list);
-    }
-    left.appendChild(tomorrowCard);
-
-    /* 오른쪽: 체크리스트 + 메모 */
-    const right = el('div', { class: 'grid' });
-    cols.appendChild(right);
-
+    /* MY CHECKLIST — 팀원에게 안 보이는, 나만의 목록 */
+    const progress = ui.taskProgress(todayKey);
     const bar = el('span', { style: { width: progress.pct + '%' } });
-    const progressLabel = el('span', { class: 'hint', text: progress.pct + '%' });
-    const tasksCard = el('div', { id: 'today-tasks', class: 'card' }, [
-      el('div', { class: 'card-head' }, [
-        el('h2', { text: '오늘의 체크리스트' }),
-        progressLabel,
-      ]),
-      el('div', { class: 'progress', style: { marginBottom: '12px' } }, [bar]),
+    const countLabel = el('span', { class: 'sub', text: progress.done + ' / ' + progress.total });
+
+    const tasksCard = el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h2', { text: 'My Checklist' }), countLabel]),
+      el('div', { class: 'bar', style: { marginBottom: '10px' } }, [bar]),
     ]);
 
-    const tasks = ui.taskList(todayKey, {
-      emptyText: '오늘 챙길 일을 적어두세요. (나만 봅니다)',
+    const list = ui.taskList(todayKey, {
+      emptyText: '오늘 챙길 일을 적어두세요.\n이 목록은 나만 봅니다.',
       onChanged: () => {
         const p = ui.taskProgress(todayKey);
         bar.style.width = p.pct + '%';
-        progressLabel.textContent = p.pct + '%';
+        countLabel.textContent = p.done + ' / ' + p.total;
       },
     });
-    tasksCard.appendChild(tasks);
-    right.appendChild(tasksCard);
+    tasksCard.appendChild(list);
+    tasksCard.focusAdd = list.focusAdd;
+    wrap.appendChild(tasksCard);
 
-    /* 하루 메모 */
-    const note = el('textarea', {
-      class: 'note-area',
-      placeholder: '오늘 기억해야 할 것 / 전달받은 내용',
+    /* 미니 캘린더 */
+    const mini = ui.miniCalendar({
+      getSelected: () => ctx.state.selected,
+      onPick: (key) => { ctx.state.selected = key; ctx.go('calendar'); },
     });
-    note.value = S.note(todayKey);
-    note.addEventListener('blur', () => S.setNote(todayKey, note.value));
-    right.appendChild(
+    wrap.appendChild(el('div', { class: 'card' }, [mini]));
+
+    /* 빠른 추가 */
+    wrap.appendChild(
       el('div', { class: 'card' }, [
-        el('div', { class: 'card-head' }, [el('h2', { text: '오늘 메모' })]),
-        note,
+        el('div', { class: 'card-head' }, [el('h2', { text: '빠른 추가' })]),
+        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } }, [
+          el('button', {
+            class: 'btn btn-block',
+            style: { justifyContent: 'space-between' },
+            onClick: () => A.quickAdd({ date: todayKey, onSaved: ctx.rerender }),
+          }, [
+            el('span', { style: { display: 'flex', alignItems: 'center', gap: '7px' } }, [icon('calendar', 14), '일정 추가']),
+            el('kbd', { text: 'Ctrl N' }),
+          ]),
+          el('button', {
+            class: 'btn btn-block',
+            style: { justifyContent: 'space-between' },
+            onClick: () => A.quickAdd({ date: todayKey, mode: 'task', onSaved: ctx.rerender }),
+          }, [
+            el('span', { style: { display: 'flex', alignItems: 'center', gap: '7px' } }, [icon('tasks', 14), '할 일 추가']),
+            el('kbd', { text: 'Ctrl ⇧ N' }),
+          ]),
+        ]),
       ])
     );
 
-    /* --- 다가오는 일정 --- */
-    const upcoming = [];
-    for (let i = 2; i <= 9; i++) {
-      const key = U.addDays(todayKey, i);
-      for (const ev of S.eventsOn(key)) upcoming.push({ date: key, event: ev });
-    }
-
-    const upcomingCard = el('div', { class: 'card', style: { marginTop: '16px' } }, [
-      el('div', { class: 'card-head' }, [
-        el('h2', { text: '다가오는 일정' }),
-        el('span', { class: 'hint', text: '앞으로 9일' }),
-      ]),
-    ]);
-    if (!upcoming.length) {
-      upcomingCard.appendChild(el('div', { class: 'empty', text: '예정된 일정이 없습니다.' }));
-    } else {
-      const list = el('div', { class: 'list-rows' });
-      upcoming.slice(0, 12).forEach(({ date, event }) => {
-        list.appendChild(
-          el('div', {
-            class: 'list-row',
-            style: { cursor: 'pointer' },
-            onClick: () => ui.eventEditor(event, { date, onSaved: ctx.rerender }),
-          }, [
-            el('span', {
-              class: 'mono faint',
-              style: { minWidth: '92px' },
-              text: U.fmtShort(date) + ' ' + U.WEEKDAYS[U.dayOfWeek(date)],
-            }),
-            el('span', { class: 'grow', text: event.title }),
-            ui.categoryPill(event.category),
-            ui.avatarStack(event.members),
-            el('span', { class: 'faint', style: { minWidth: '54px', textAlign: 'right' }, text: U.fmtRelative(date) }),
-          ])
-        );
-      });
-      upcomingCard.appendChild(list);
-    }
-    root.appendChild(upcomingCard);
-
-    /* --- 이번 주 팀 부하 --- */
-    const workload = S.workloadBetween(weekFrom, weekTo).sort((a, b) => b.count - a.count);
-    const max = Math.max(1, ...workload.map((w) => w.count));
-    const loadCard = el('div', { class: 'card', style: { marginTop: '16px' } }, [
-      el('div', { class: 'card-head' }, [
-        el('h2', { text: '이번 주 팀 부하' }),
-        el('span', { class: 'hint', text: U.fmtShort(weekFrom) + ' – ' + U.fmtShort(weekTo) }),
-      ]),
-    ]);
-    const loadRows = el('div', { class: 'list-rows' });
-    workload.forEach((w) => {
-      loadRows.appendChild(
-        el('div', { class: 'list-row' }, [
-          ui.avatar(w.member.id),
-          el('span', { style: { minWidth: '92px' }, text: w.member.name }),
-          el('div', { class: 'grow' }, [
-            el('div', { class: 'progress' }, [
-              el('span', {
-                style: { width: Math.round((w.count / max) * 100) + '%', background: w.member.color },
-              }),
-            ]),
-          ]),
-          el('span', { class: 'faint mono', text: w.count + '건' + (w.shoot ? ' · 촬영 ' + w.shoot : '') }),
-        ])
-      );
-    });
-    loadCard.appendChild(workload.length ? loadRows : el('div', { class: 'empty', text: '팀원을 추가해 주세요.' }));
-    root.appendChild(loadCard);
+    wrap.focusTaskAdd = () => list.focusAdd();
+    return wrap;
   }
 
   A.views = A.views || {};
-  A.views.today = { title: '오늘', render };
+  A.views.today = { title: 'Today', render };
 })(window);

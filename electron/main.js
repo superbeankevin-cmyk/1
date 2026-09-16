@@ -223,7 +223,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 640,
     backgroundColor: '#12141a',
-    title: '클콩 제작2파트 비서',
+    title: 'P2 DESK',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -257,7 +257,7 @@ function buildMenu() {
       label: '파일',
       submenu: [
         { label: '새 일정', accelerator: 'CmdOrCtrl+N', click: send('menu:new-event') },
-        { label: '새 체크리스트 항목', accelerator: 'CmdOrCtrl+T', click: send('menu:new-task') },
+        { label: '새 할 일', accelerator: 'CmdOrCtrl+Shift+N', click: send('menu:new-task') },
         { type: 'separator' },
         { label: '캘린더 내보내기 (.ics)', click: send('menu:export-ics') },
         { label: '캘린더 가져오기 (.ics)', click: send('menu:import-ics') },
@@ -269,10 +269,11 @@ function buildMenu() {
     {
       label: '보기',
       submenu: [
-        { label: '오늘', accelerator: 'CmdOrCtrl+1', click: send('menu:view-today') },
-        { label: '캘린더', accelerator: 'CmdOrCtrl+2', click: send('menu:view-calendar') },
-        { label: '체크리스트', accelerator: 'CmdOrCtrl+3', click: send('menu:view-checklist') },
-        { label: '팀', accelerator: 'CmdOrCtrl+4', click: send('menu:view-team') },
+        { label: 'Today', accelerator: 'CmdOrCtrl+1', click: send('menu:view-today') },
+        { label: 'Calendar', accelerator: 'CmdOrCtrl+2', click: send('menu:view-calendar') },
+        { label: 'Projects', accelerator: 'CmdOrCtrl+3', click: send('menu:view-projects') },
+        { label: 'My Tasks', accelerator: 'CmdOrCtrl+4', click: send('menu:view-tasks') },
+        { label: 'Team', accelerator: 'CmdOrCtrl+5', click: send('menu:view-team') },
         { label: '설정', accelerator: 'CmdOrCtrl+,', click: send('menu:view-settings') },
         { type: 'separator' },
         { role: 'reload', label: '새로고침' },

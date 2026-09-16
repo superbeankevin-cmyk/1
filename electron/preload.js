@@ -31,7 +31,8 @@ contextBridge.exposeInMainWorld('desktop', {
       'menu:export-json',
       'menu:view-today',
       'menu:view-calendar',
-      'menu:view-checklist',
+      'menu:view-projects',
+      'menu:view-tasks',
       'menu:view-team',
       'menu:view-settings',
     ];

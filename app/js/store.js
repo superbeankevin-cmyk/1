@@ -8,38 +8,60 @@
   const SCHEMA_VERSION = 1;
   const LS_KEY = 'klkong-part2-assistant';
 
-  /* 제작 파트 일이 실제로 굴러가는 단위들 */
+  /* 일의 종류 — 상세 편집에서만 고르는 보조 분류 */
   const CATEGORIES = [
-    { id: 'plan', label: '기획/구성', color: '#8b7cf6', icon: '📝' },
-    { id: 'shoot', label: '촬영', color: '#f97362', icon: '🎬' },
-    { id: 'edit', label: '편집', color: '#3b9df8', icon: '✂️' },
-    { id: 'review', label: '시사/피드백', color: '#f0b429', icon: '👀' },
-    { id: 'deliver', label: '납품/업로드', color: '#2fb47c', icon: '🚀' },
-    { id: 'meeting', label: '회의', color: '#64748b', icon: '💬' },
-    { id: 'off', label: '휴가/연차', color: '#94a3b8', icon: '🌴' },
-    { id: 'etc', label: '기타', color: '#a1a1aa', icon: '•' },
+    { id: 'shoot', label: '촬영', color: '#F2A15E' },
+    { id: 'edit', label: '편집', color: '#57C68A' },
+    { id: 'plan', label: '기획/구성', color: '#A98BDB' },
+    { id: 'review', label: '시사/피드백', color: '#5AA9E6' },
+    { id: 'deliver', label: '납품/업로드', color: '#3478F6' },
+    { id: 'meeting', label: '회의', color: '#8E8E93' },
+    { id: 'off', label: '휴가/연차', color: '#C7C7CC' },
+    { id: 'etc', label: '기타', color: '#8E8E93' },
   ];
 
-  const MEMBER_PALETTE = [
-    '#f97362', '#3b9df8', '#2fb47c', '#a855f7',
-    '#f0b429', '#14b8a6', '#ec4899', '#8b7cf6',
+  /* 제작 파이프라인 — Projects 화면의 진행 현황이 이 값으로 집계된다 */
+  const STATUSES = [
+    { id: 'plan', label: '기획', color: '#8E8E93' },
+    { id: 'ready', label: '촬영예정', color: '#5AC8FA' },
+    { id: 'shot', label: '촬영완료', color: '#34C759' },
+    { id: 'editing', label: '편집중', color: '#FF9500' },
+    { id: 'feedback', label: '피드백', color: '#AF52DE' },
+    { id: 'done', label: '완료', color: '#3478F6' },
   ];
+
+  /* 팀원 색 — 캘린더가 지저분해지지 않도록 전부 파스텔 톤 */
+  const MEMBER_PALETTE = [
+    '#5AA9E6', '#57C68A', '#F2A15E', '#A98BDB',
+    '#5AC8FA', '#4DBFA6', '#E88AA8', '#8E8E93',
+  ];
+
+  const ACCENT_DEADLINE = '#FF3B30';
 
   function defaultData() {
     return {
       version: SCHEMA_VERSION,
       members: [
-        { id: 'me', name: '나 (파트장)', short: 'ME', color: '#e11d48', active: true, lead: true },
-        { id: 'sk', name: '조성경', short: 'SK', color: '#f97362', active: true },
-        { id: 'jh', name: '박정현', short: 'JH', color: '#3b9df8', active: true },
-        { id: 'sb', name: '임승빈', short: 'SB', color: '#2fb47c', active: true },
-        { id: 'jy', name: '권지연', short: 'JY', color: '#a855f7', active: true },
+        { id: 'me', name: '개인 일정', short: 'ME', color: '#8E8E93', active: true, lead: true },
+        { id: 'sk', name: '조성경', short: 'SK', color: '#5AA9E6', active: true },
+        { id: 'jh', name: '박정현', short: 'JH', color: '#57C68A', active: true },
+        { id: 'sb', name: '임승빈', short: 'SB', color: '#F2A15E', active: true },
+        { id: 'jy', name: '권지연', short: 'JY', color: '#A98BDB', active: true },
+      ],
+      projects: [
+        { id: 'p-palgong', name: '팔공TV', subtitle: '청년 인터뷰 시리즈', color: '#5AA9E6', active: true },
+        { id: 'p-safe', name: '안전한TV', subtitle: '교통안전 캠페인', color: '#57C68A', active: true },
+        { id: 'p-wis', name: 'WILL IT SELL', subtitle: '브랜드 콘텐츠', color: '#F2A15E', active: true },
+        { id: 'p-own', name: '클콩 자체콘텐츠', subtitle: '오리지널 시리즈', color: '#A98BDB', active: true },
       ],
       events: [],
       checklists: {},
       routines: [],
       notes: {},
       settings: {
+        userName: '은서',      // 인사말에 쓰는 이름
+        dayStartHour: 8,       // 주간 시간표에 그릴 시간 범위
+        dayEndHour: 21,
         weekStart: 1,          // 월요일 시작
         carryOver: true,       // 못 끝낸 일 오늘로 끌어오기
         defaultView: 'today',
@@ -191,6 +213,83 @@
     },
 
     /* ---------------------------------------------------------------- */
+    /* 프로젝트                                                          */
+    /* ---------------------------------------------------------------- */
+
+    projects() {
+      return this.data.projects.filter((p) => p.active !== false);
+    },
+
+    project(id) {
+      return this.data.projects.find((p) => p.id === id) || null;
+    },
+
+    projectName(id) {
+      const p = this.project(id);
+      return p ? p.name : '';
+    },
+
+    projectColor(id) {
+      const p = this.project(id);
+      return p ? p.color : '#8E8E93';
+    },
+
+    addProject(partial) {
+      const used = this.data.projects.map((p) => p.color);
+      const project = Object.assign(
+        {
+          id: U.uid(),
+          name: '',
+          subtitle: '',
+          color:
+            MEMBER_PALETTE.find((c) => !used.includes(c)) ||
+            MEMBER_PALETTE[this.data.projects.length % MEMBER_PALETTE.length],
+          active: true,
+          createdAt: new Date().toISOString(),
+        },
+        partial
+      );
+      if (!project.name) return null;
+      this.data.projects.push(project);
+      this.save();
+      return project;
+    },
+
+    updateProject(id, patch) {
+      const project = this.project(id);
+      if (!project) return;
+      Object.assign(project, patch);
+      this.save();
+    },
+
+    removeProject(id) {
+      const project = this.project(id);
+      if (!project) return;
+      project.active = false;   // 기존 일정의 연결은 살려둔다
+      this.save();
+    },
+
+    /** 프로젝트 진행 현황 — 상태별 개수와 완료율 */
+    projectStats(projectId) {
+      const events = this.data.events.filter((e) => e.projectId === projectId);
+      const byStatus = {};
+      for (const st of STATUSES) byStatus[st.id] = 0;
+      for (const ev of events) {
+        const key = byStatus[ev.status] !== undefined ? ev.status : 'plan';
+        byStatus[key]++;
+      }
+      const total = events.length;
+      const done = byStatus.done;
+      return {
+        total,
+        done,
+        byStatus,
+        pct: total ? Math.round((done / total) * 100) : 0,
+        events,
+      };
+    },
+
+    /* ---------------------------------------------------------------- */
     /* 일정                                                              */
     /* ---------------------------------------------------------------- */
 
@@ -205,9 +304,12 @@
           start: '',
           end: '',
           members: [],
+          projectId: '',
+          status: 'plan',
           category: 'etc',
           note: '',
           place: '',
+          deadline: false,   // 마감 일정은 캘린더에서 빨간색으로 뜬다
           done: false,
           repeat: 'none',     // none | daily | weekly | biweekly | monthly
           repeatUntil: '',
@@ -508,6 +610,7 @@
       events: Array.isArray(loaded.events) ? loaded.events : [],
       checklists: loaded.checklists && typeof loaded.checklists === 'object' ? loaded.checklists : {},
       routines: Array.isArray(loaded.routines) ? loaded.routines : [],
+      projects: Array.isArray(loaded.projects) ? loaded.projects : base.projects,
       notes: loaded.notes && typeof loaded.notes === 'object' ? loaded.notes : {},
       settings: Object.assign({}, base.settings, loaded.settings || {}),
     };
@@ -518,6 +621,9 @@
       if (!Array.isArray(ev.members)) ev.members = [];
       if (!ev.category) ev.category = 'etc';
       if (!ev.repeat) ev.repeat = 'none';
+      if (!ev.status) ev.status = 'plan';
+      if (ev.projectId === undefined) ev.projectId = '';
+      if (ev.deadline === undefined) ev.deadline = false;
       if (ev.allDay === undefined) ev.allDay = !ev.start;
     }
     for (const list of Object.values(data.checklists)) {
@@ -564,7 +670,18 @@
 
   A.store = Store;
   A.CATEGORIES = CATEGORIES;
+  A.STATUSES = STATUSES;
   A.MEMBER_PALETTE = MEMBER_PALETTE;
+  A.ACCENT_DEADLINE = ACCENT_DEADLINE;
   A.category = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+  A.status = (id) => STATUSES.find((st) => st.id === id) || STATUSES[0];
+
+  /** 캘린더에서 이 일정을 무슨 색으로 그릴지 — 마감 > 담당자 > 프로젝트 순 */
+  A.eventColor = function (ev) {
+    if (ev.deadline) return ACCENT_DEADLINE;
+    if (ev.members && ev.members.length) return Store.memberColor(ev.members[0]);
+    if (ev.projectId) return Store.projectColor(ev.projectId);
+    return '#8E8E93';
+  };
   A.occursOn = occursOn;
 })(window);
