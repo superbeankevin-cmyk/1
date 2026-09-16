@@ -5,3 +5,6 @@ dist/
 .DS_Store
 Thumbs.db
 *.ics
+
+# 실제 업무 데이터는 저장소에 두지 않는다 (예산·일정 포함)
+P2DESK-*.json
