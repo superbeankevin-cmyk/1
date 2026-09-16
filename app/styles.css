@@ -4,12 +4,15 @@
    화려함보다 여백과 정보 밀도로 승부한다.
    ========================================================================== */
 
-/* Pretendard 가 설치되어 있거나 app/fonts/ 에 넣어두면 자동으로 쓰이고,
-   없으면 각 OS 기본 한글 폰트로 자연스럽게 내려간다. (README 참고) */
+/* Pretendard 를 앱에 내장한다 (SIL Open Font License).
+   가변 폰트 한 벌로 45~920 굵기를 모두 커버하므로, 폰트가 설치되지 않은
+   윈도우 PC 에서도 맥에서와 똑같은 모양으로 보인다.
+   파일을 지우면 각 OS 기본 한글 폰트로 자연스럽게 내려간다. */
 @font-face {
-  font-family: 'Pretendard Bundled';
-  src: url('fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-family: 'Pretendard Variable';
+  src: url('fonts/PretendardVariable.woff2') format('woff2');
   font-weight: 45 920;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -45,7 +48,7 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .04);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .06);
 
-  --font: 'Pretendard Variable', Pretendard, 'Pretendard Bundled',
+  --font: 'Pretendard Variable', Pretendard,
           -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
           'Segoe UI', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
 

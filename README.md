@@ -99,12 +99,15 @@ async flush()   // 데이터 쓰기
 
 ## 폰트
 
-Pretendard 가 설치되어 있으면 자동으로 쓰입니다. 없으면 각 OS 기본 한글 폰트
-(맑은 고딕 / Apple SD Gothic Neo)로 내려갑니다.
+**Pretendard 가 앱에 내장되어 있습니다.** 따로 설치할 게 없고, 폰트가 깔리지 않은
+윈도우 PC에서도 맥과 똑같은 모양으로 보입니다.
 
-앱에 내장하려면 [Pretendard](https://github.com/orioncactus/pretendard) 의
-`PretendardVariable.woff2` 를 `app/fonts/` 에 넣으면 됩니다. 폰트가 설치되지 않은
-윈도우 PC에서도 같은 모양으로 보입니다.
+`app/fonts/PretendardVariable.woff2` (2.0MB) 한 벌이 45~920 굵기를 전부 커버합니다.
+[Pretendard](https://github.com/orioncactus/pretendard) v1.3.9, SIL Open Font License 1.1
+(라이선스 전문은 `app/fonts/PRETENDARD-LICENSE.txt`).
+
+다른 폰트로 바꾸려면 `app/styles.css` 맨 위의 `@font-face` 와 `--font` 두 곳만
+고치면 됩니다. 폰트 파일을 지우면 각 OS 기본 한글 폰트로 자연스럽게 내려갑니다.
 
 ## 데이터와 백업
 
@@ -125,6 +128,7 @@ electron/
 app/
   index.html
   styles.css    디자인 토큰이 :root 에 모여 있습니다
+  fonts/        Pretendard (내장)
   js/
     util.js     날짜 계산 · DOM 헬퍼
     store.js    데이터 모델과 저장소  ← 동기화 방식은 여기만 바꾸면 됩니다
