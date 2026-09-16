@@ -168,66 +168,69 @@ function stopWatching() {
 /* 클라우드 폴더 찾기                                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 이름을 사람이 알아보게 다듬는다.
+ * 맥의 CloudStorage 폴더는 "GoogleDrive-csk945@gmail.com" 처럼 생겼는데,
+ * 그대로 보여주면 옆에 있는 "Google Drive" 와 구분이 안 된다.
+ */
+function prettyLabel(rawName) {
+  const services = [
+    [/^google\s*drive/i, 'Google Drive'],
+    [/^onedrive/i, 'OneDrive'],
+    [/^dropbox/i, 'Dropbox'],
+    [/^box/i, 'Box'],
+    [/^icloud/i, 'iCloud Drive'],
+  ];
+  const match = services.find(([re]) => re.test(rawName));
+  const service = match ? match[1] : rawName;
+
+  // 계정이 붙어 있으면 같이 보여줘야 어느 계정인지 알 수 있다
+  const account = rawName.match(/[-_]([^-_\s]+@[^-_\s]+)/);
+  return account ? service + ' (' + account[1] + ')' : service;
+}
+
 /** 흔히 쓰는 동기화 폴더 중 실제로 있는 것만 골라 돌려준다 */
 function findCloudFolders() {
   const home = app.getPath('home');
-  const candidates = [
+  const found = [];
+  const seen = new Set();
+
+  const add = (rawName, dir) => {
+    let real = dir;
+    try {
+      real = fs.realpathSync(dir);
+      if (!fs.statSync(real).isDirectory()) return;
+    } catch (err) {
+      return;
+    }
+    if (seen.has(real)) return;          // 같은 폴더를 가리키는 별칭은 한 번만
+    seen.add(real);
+    found.push({ label: prettyLabel(rawName), path: dir });
+  };
+
+  // 맥은 계정별 폴더가 CloudStorage 아래에 모여 있다
+  const cloudStorage = path.join(home, 'Library', 'CloudStorage');
+  try {
+    for (const sub of fs.readdirSync(cloudStorage)) {
+      add(sub, path.join(cloudStorage, sub));
+    }
+  } catch (err) {
+    /* 이 맥에는 없는 경로 */
+  }
+
+  const plain = [
     ['iCloud Drive', path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs')],
     ['Google Drive', path.join(home, 'Google Drive')],
-    ['Google Drive', path.join(home, 'Library', 'CloudStorage')],
     ['Dropbox', path.join(home, 'Dropbox')],
     ['OneDrive', path.join(home, 'OneDrive')],
   ];
   if (process.platform === 'win32') {
-    candidates.push(['Google Drive', 'G:\\내 드라이브']);
-    candidates.push(['Google Drive', 'G:\\My Drive']);
+    plain.push(['Google Drive', 'G:\\내 드라이브']);
+    plain.push(['Google Drive', 'G:\\My Drive']);
   }
+  for (const [label, dir] of plain) add(label, dir);
 
-  const found = [];
-  const seen = new Set();
-  for (const [label, dir] of candidates) {
-    try {
-      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
-      // Library/CloudStorage 아래에는 계정별 폴더가 한 겹 더 있다
-      if (dir.endsWith('CloudStorage')) {
-        for (const sub of fs.readdirSync(dir)) {
-          const full = path.join(dir, sub);
-          if (fs.statSync(full).isDirectory() && !seen.has(full)) {
-            seen.add(full);
-            found.push({ label: sub.split('-')[0].trim() || label, path: full });
-          }
-        }
-        continue;
-      }
-      if (seen.has(dir)) continue;
-      seen.add(dir);
-      found.push({ label, path: dir });
-    } catch (err) {
-      /* 접근할 수 없는 후보는 건너뛴다 */
-    }
-  }
   return found;
-}
-
-// 하루에 한 번, 최근 14개까지 자동 백업
-async function autoBackup(payload) {
-  try {
-    const dir = path.join(dataDir(), 'backups');
-    await fsp.mkdir(dir, { recursive: true });
-    const stamp = new Date().toISOString().slice(0, 10);
-    const file = path.join(dir, `part2-data-${stamp}.json`);
-    await fsp.writeFile(file, JSON.stringify(payload, null, 2), 'utf8');
-
-    const files = (await fsp.readdir(dir))
-      .filter((f) => f.startsWith('part2-data-') && f.endsWith('.json'))
-      .sort();
-    for (const stale of files.slice(0, Math.max(0, files.length - 14))) {
-      await fsp.unlink(path.join(dir, stale)).catch(() => {});
-    }
-    return { ok: true, path: file };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
 }
 
 /* ------------------------------------------------------------------ */
