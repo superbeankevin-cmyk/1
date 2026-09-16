@@ -1,0 +1,41 @@
+{
+  "name": "klkong-part2-assistant",
+  "productName": "클콩 제작2파트 비서",
+  "version": "1.0.0",
+  "description": "클콩 영상제작본부 제작2파트 파트장용 일정/체크리스트 관리 데스크톱 앱",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist": "electron-builder --win --mac"
+  },
+  "author": "제작2파트",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.klkong.part2.assistant",
+    "productName": "클콩 제작2파트 비서",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["electron/**/*", "app/**/*", "package.json"],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "제작2파트 비서"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "category": "public.app-category.productivity"
+    }
+  }
+}
