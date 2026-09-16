@@ -69,8 +69,18 @@
 프로그램(DaVinci Resolve 등)의 Electron 이 대신 실행된 것입니다. 최신 버전에서는
 자동으로 막아두었으니 ZIP 을 다시 받으세요.
 
-**"Electron failed to install correctly"** 가 뜬다면 — 본체(약 100MB)를 받다가
-끊긴 것입니다. 터미널(맥) 또는 명령 프롬프트(윈도우)에서 다음을 실행하세요.
+**"Electron failed to install correctly"** 가 뜨거나, 설치 기록에
+**`install scripts not yet covered by allowScripts`** 가 보인다면 — 최신 npm 이
+보안상 패키지의 설치 스크립트를 막은 것입니다. Electron 은 그 스크립트로 본체를
+받아오기 때문에, `npm install` 이 성공해도 실행 파일만 빠진 상태가 됩니다.
+
+실행기들이 이 경우를 자동으로 처리하지만, 직접 해결하려면:
+
+```bash
+node scripts/ensure-electron.js
+```
+
+그래도 안 되면 내려받기 자체가 막힌 것입니다. 다른 서버에서 받아보세요.
 
 ```bash
 # 맥

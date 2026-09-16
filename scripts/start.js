@@ -10,11 +10,23 @@
  */
 'use strict';
 
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const projectRoot = path.join(__dirname, '..');
+
+// 최신 npm 은 패키지의 설치 스크립트를 막아 두기 때문에, npm install 이 끝나도
+// Electron 본체가 없을 수 있다. 그럴 때 직접 받아오게 한다.
+const distDir = path.join(projectRoot, 'node_modules', 'electron', 'dist');
+if (!fs.existsSync(distDir)) {
+  const ensure = spawnSync(
+    process.execPath,
+    [path.join(__dirname, 'ensure-electron.js')],
+    { stdio: 'inherit' }
+  );
+  if (ensure.status !== 0) process.exit(ensure.status || 1);
+}
 
 let electronPath;
 try {

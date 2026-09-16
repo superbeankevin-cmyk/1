@@ -33,7 +33,13 @@ if [ ! -d "node_modules/electron/dist" ]; then
     echo ""
 fi
 
-# 설치가 끝났다는데 알맹이가 없으면, 받다가 끊긴 것이다.
+# 최신 npm 은 보안상 패키지의 설치 스크립트를 막는다. Electron 은 그 스크립트로
+# 본체를 받아오기 때문에, npm install 이 끝나도 본체가 없을 수 있다.
+if [ ! -d "node_modules/electron/dist" ]; then
+    node scripts/ensure-electron.js
+fi
+
+# 그래도 없으면 받다가 끊긴 것이다.
 if [ ! -d "node_modules/electron/dist" ]; then
     echo ""
     echo "  [!] 앱 본체를 내려받지 못했습니다."
@@ -52,4 +58,4 @@ fi
 echo "  앱을 켜는 중입니다..."
 echo "  (이 터미널 창은 앱이 켜져 있는 동안 같이 떠 있습니다. 닫지 마세요.)"
 echo ""
-npm start
+./node_modules/.bin/electron .

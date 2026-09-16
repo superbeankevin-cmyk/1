@@ -34,6 +34,10 @@ if not exist "node_modules\electron\dist" (
     echo.
 )
 
+if not exist "node_modules\electron\dist" (
+    call node scripts\ensure-electron.js
+)
+
 echo   설치파일을 만드는 중입니다. 5~10분 걸립니다.
 echo.
 call npm run dist:win

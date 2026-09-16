@@ -109,12 +109,11 @@ if [ ! -d "node_modules/electron/dist" ]; then
   : > "$LOG" 2>/dev/null || true
   npm install --foreground-scripts >>"$LOG" 2>&1
 
+  # 최신 npm 은 보안상 패키지의 설치 스크립트를 막는다. Electron 은 그 스크립트로
+  # 본체를 받아오기 때문에, npm install 이 끝나도 본체가 없을 수 있다. 직접 받아온다.
   if [ ! -d "node_modules/electron/dist" ]; then
-    notify "다른 서버에서 다시 시도합니다."
-    printf '\n=== 미러 서버로 재시도 ===\n' >>"$LOG"
-    rm -rf node_modules/electron
-    ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" \
-      npm install electron --foreground-scripts >>"$LOG" 2>&1
+    printf '\n=== 본체 직접 내려받기 ===\n' >>"$LOG"
+    node scripts/ensure-electron.js >>"$LOG" 2>&1
   fi
 
   # 그래도 안 되면, 이 컴퓨터에 이미 있는 Electron 을 빌려 쓸지 물어본다

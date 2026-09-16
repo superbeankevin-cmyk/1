@@ -21,6 +21,10 @@ if [ ! -d "node_modules/electron/dist" ]; then
     echo ""
 fi
 
+if [ ! -d "node_modules/electron/dist" ]; then
+    node scripts/ensure-electron.js || { echo "  [!] 본체를 내려받지 못했습니다."; read -n 1 -s -r -p ""; exit 1; }
+fi
+
 echo "  설치파일을 만드는 중입니다. 5~10분 걸립니다."
 echo ""
 npm run dist:mac || { echo ""; echo "  [!] 만드는 중 문제가 생겼습니다."; read -n 1 -s -r -p ""; exit 1; }
