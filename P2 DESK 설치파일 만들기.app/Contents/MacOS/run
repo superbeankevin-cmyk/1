@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# P2 DESK 설치파일(.dmg) 만들기 — macOS
+#
+# 바로실행기와 같은 이유로 터미널을 거치지 않는다. 여기서 만든 .dmg 를 설치하면
+# Dock 과 Command+Tab 에 "Electron" 이 아니라 "P2 DESK" 로 제대로 나온다.
+#
+set -u
+
+HERE="$(cd "$(dirname "$0")/../../.." 2>/dev/null && pwd)" || HERE=""
+SETTINGS_DIR="$HOME/Library/Application Support/P2 DESK"
+SAVED_PATH="$SETTINGS_DIR/project-path.txt"
+
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+looks_like_project() {
+  [ -n "${1:-}" ] && [ -f "$1/package.json" ] && [ -d "$1/app" ] && [ -f "$1/electron/main.js" ]
+}
+
+resolve_project() {
+  if looks_like_project "$HERE"; then echo "$HERE"; return 0; fi
+  if [ -f "$SAVED_PATH" ]; then
+    local saved
+    saved="$(/bin/cat "$SAVED_PATH" 2>/dev/null)"
+    if looks_like_project "$saved"; then echo "$saved"; return 0; fi
+  fi
+  local picked
+  picked="$(/usr/bin/osascript -e 'POSIX path of (choose folder with prompt "압축을 푼 P2 DESK 폴더를 선택해 주세요")' 2>/dev/null)"
+  picked="${picked%/}"
+  if looks_like_project "$picked"; then
+    /bin/mkdir -p "$SETTINGS_DIR"; /bin/echo "$picked" > "$SAVED_PATH"
+    echo "$picked"; return 0
+  fi
+  return 1
+}
+
+PROJECT="$(resolve_project || true)"
+if [ -z "${PROJECT:-}" ]; then
+  /usr/bin/osascript -e 'display dialog "P2 DESK 폴더를 찾지 못했습니다." buttons {"확인"} default button 1 with title "P2 DESK" with icon caution' >/dev/null 2>&1
+  exit 1
+fi
+cd "$PROJECT" || exit 1
+LOG="$PROJECT/설치파일기록.txt"
+
+if ! command -v npm >/dev/null 2>&1; then
+  /usr/bin/osascript -e 'display dialog "Node.js 가 필요합니다. nodejs.org 에서 LTS 버전을 설치해 주세요." buttons {"확인"} default button 1 with title "P2 DESK" with icon caution' >/dev/null 2>&1
+  /usr/bin/open "https://nodejs.org"; exit 1
+fi
+
+/usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1
+display dialog "설치파일(.dmg)을 만듭니다.
+
+5~10분 걸리고 그동안 화면에는 아무 변화가 없습니다.
+다 되면 폴더가 저절로 열립니다.
+
+이 창은 8초 뒤 닫힙니다." buttons {"확인"} default button 1 giving up after 8 with title "P2 DESK"
+APPLESCRIPT
+
+: > "$LOG" 2>/dev/null || true
+[ -d "node_modules" ] || npm install --foreground-scripts >>"$LOG" 2>&1
+[ -d "node_modules/electron/dist" ] || node scripts/ensure-electron.js >>"$LOG" 2>&1
+
+npm run dist:mac >>"$LOG" 2>&1
+
+DMG="$(/usr/bin/find "$PROJECT/release" -maxdepth 1 -name '*.dmg' 2>/dev/null | /usr/bin/head -1)"
+if [ -n "$DMG" ]; then
+  /usr/bin/osascript -e 'display dialog "설치파일이 만들어졌습니다.
+
+이제 열리는 폴더에서 .dmg 를 더블클릭하고, P2 DESK 를 응용 프로그램 폴더로 끌어다 놓으세요.
+
+처음 열 때 경고가 뜨면 앱을 마우스 오른쪽 클릭 → 열기 를 누르시면 됩니다." buttons {"확인"} default button 1 with title "P2 DESK"' >/dev/null 2>&1
+  /usr/bin/open "$PROJECT/release"
+  exit 0
+fi
+
+/usr/bin/osascript <<APPLESCRIPT >/dev/null 2>&1
+set logTail to ""
+try
+  set logTail to (do shell script "tail -n 12 " & quoted form of "$LOG")
+end try
+display dialog "설치파일을 만들지 못했습니다." & return & return & ¬
+  "아래 내용을 캡처해서 보내주세요." & return & return & logTail ¬
+  buttons {"확인"} default button 1 with title "P2 DESK" with icon caution
+APPLESCRIPT
+exit 1
