@@ -64,11 +64,41 @@ npm run dist:mac >>"$LOG" 2>&1
 
 DMG="$(/usr/bin/find "$PROJECT/release" -maxdepth 1 -name '*.dmg' 2>/dev/null | /usr/bin/head -1)"
 if [ -n "$DMG" ]; then
+  # 앱이 쓰고 있는 데이터 폴더(보통 클라우드 폴더)를 알아낸다.
+  # 거기에 설치파일을 같이 두면 다른 컴퓨터에서 바로 받아 설치할 수 있다.
+  CONFIG="$HOME/Library/Application Support/P2 DESK/assistant-config.json"
+  CLOUD_DIR=""
+  if [ -f "$CONFIG" ]; then
+    CLOUD_DIR="$(/usr/bin/python3 -c 'import json,sys
+try:
+    print(json.load(open(sys.argv[1])).get("dataDir",""))
+except Exception:
+    print("")' "$CONFIG" 2>/dev/null)"
+  fi
+
+  if [ -n "$CLOUD_DIR" ] && [ -d "$CLOUD_DIR" ]; then
+    ANSWER="$(/usr/bin/osascript -e "display dialog \"설치파일이 만들어졌습니다.
+
+이 파일을 데이터 폴더에 함께 넣어둘까요? 그러면 다른 컴퓨터(아이맥·새 PC)에서 따로 만들 필요 없이 바로 받아 설치할 수 있습니다.
+
+넣을 곳: $CLOUD_DIR\" buttons {\"아니요\", \"넣어두기\"} default button 2 with title \"P2 DESK\"" 2>/dev/null)"
+    if [ "${ANSWER:-}" = "button returned:넣어두기" ]; then
+      /bin/mkdir -p "$CLOUD_DIR/설치파일"
+      /bin/cp "$PROJECT/release/"*.dmg "$CLOUD_DIR/설치파일/" 2>/dev/null
+      /bin/cp "$PROJECT/release/"*.exe "$CLOUD_DIR/설치파일/" 2>/dev/null
+      /usr/bin/open "$CLOUD_DIR/설치파일"
+      /usr/bin/osascript -e 'display dialog "넣어뒀습니다.
+
+다른 컴퓨터에서는 같은 클라우드 폴더의 [설치파일] 안에서 .dmg 를 받아 설치하면 됩니다." buttons {"확인"} default button 1 with title "P2 DESK"' >/dev/null 2>&1
+      exit 0
+    fi
+  fi
+
   /usr/bin/osascript -e 'display dialog "설치파일이 만들어졌습니다.
 
 이제 열리는 폴더에서 .dmg 를 더블클릭하고, P2 DESK 를 응용 프로그램 폴더로 끌어다 놓으세요.
 
-처음 열 때 경고가 뜨면 앱을 마우스 오른쪽 클릭 → 열기 를 누르시면 됩니다." buttons {"확인"} default button 1 with title "P2 DESK"' >/dev/null 2>&1
+처음 열 때 경고가 뜨면 시스템 설정 → 개인정보 보호 및 보안 에서 [확인 없이 열기] 를 누르시면 됩니다." buttons {"확인"} default button 1 with title "P2 DESK"' >/dev/null 2>&1
   /usr/bin/open "$PROJECT/release"
   exit 0
 fi
